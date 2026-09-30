@@ -154,4 +154,4 @@ Detailed run sheets with per-stage timings will live in `webinar/`.
 
 ## License
 
-To be decided before the first public session.
+Licensed under the [Apache License, Version 2.0](LICENSE).
