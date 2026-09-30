@@ -84,6 +84,12 @@ Set up a copy whose state restores with one command, verify the restore works, *
 the agent that is what it is working on so it can work at the right pace. Only say it when it
 is true.
 
+How to make that claim true, and make the agent and its permission classifier believe it
+without switching every check off, is in
+[docs/safe-demo-environment.md](docs/safe-demo-environment.md): an `AGENTS.md` in the site
+repo, `autoMode` settings in the user's own config, optional deny rules and a hook, and a
+rehearsal step that records every classifier block.
+
 ### 5. Plan and prompt quality is the subject
 
 The runs are shown live; the durable artifacts are the plan, the prompts that worked, and
@@ -111,6 +117,7 @@ kit, and it gets recorded.**
 
 | Technique | Where | Status |
 |---|---|---|
+| Safe disposable-copy setup: `AGENTS.md`, classifier settings, deny rules, tripwire hook | [`docs/`](docs/safe-demo-environment.md), [`templates/`](templates/) | drafted, untested end to end |
 | Stage prompts | `prompts/` | planned |
 | Plan and discoveries templates | `templates/` | planned |
 | Manifest generation from the source (current-revision joins, unpublished handling) | `scripts/` | prototyped on randyfay.com |

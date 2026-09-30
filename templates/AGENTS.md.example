@@ -1,0 +1,40 @@
+# Agent instructions: disposable migration copy
+
+<!--
+Copy to the root of the SITE repo as AGENTS.md and fill in every <placeholder>.
+Only keep statements that are TRUE for this checkout. See docs/safe-demo-environment.md.
+If your Claude Code version does not load AGENTS.md, add a CLAUDE.md containing the single
+line: @AGENTS.md
+-->
+
+## What this environment is
+
+This is a **disposable local copy** of <site name> (<platform and version>), used to
+rehearse and run a migration. Nothing here is production.
+
+- Local URL: <https://project.ddev.site>. If this is a Coder workspace, the same site is
+  also served through <https://...coder.ddev.com>. Both point at this local copy.
+- The database and files restore from a pristine dump with one command: `<restore command>`.
+  Rebuilding from scratch is cheap and expected.
+- Destructive changes to the **local database and local files** are fine and expected:
+  bulk `UPDATE`s, deleting content, rewriting bodies in place. Work directly; do not ask
+  for confirmation on each one. Prefer scripts over one-off edits (see the kit README).
+
+## What is NOT disposable
+
+- **Production** (<production hostname(s)>): never connect to it, never write to it.
+  The only permitted contact is a public, anonymous, read-only HTTP GET of a page, and only
+  when a task explicitly asks for a comparison against the live site.
+- **Never run** `ddev pull`, `ddev push`, `rsync`/`scp`/`ssh` to a remote host, or anything
+  that would upload data. If one seems necessary, stop and ask the human. The human runs
+  `ddev auth ssh` and `ddev pull` themselves; do not attempt interactive SSH
+  authentication.
+- The frozen **baseline** (`<path>`) and its git tag are read-only. Transforms and
+  pipeline runs must never regenerate it.
+
+## Ground rules for this work
+
+- We are reproducing the site, not fixing it. Do not repair inconsistencies you find.
+  Record each one in `DISCOVERIES.md` instead.
+- Anything deliberately changed is declared in the expected-differences file, not silently.
+- Every script you write reports a count of what it changed.

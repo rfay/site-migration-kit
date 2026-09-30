@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ddev mysql *)",
+      "Bash(ddev exec *)",
+      "Bash(ddev playwright *)",
+      "Bash(ddev describe *)",
+      "Bash(ddev launch *)",
+      "Bash(ddev restart *)",
+      "Bash(ddev import-db *)",
+      "Bash(node scripts/*)",
+      "Bash(curl -s *)"
+    ],
+    "deny": [
+      "Bash(ddev pull *)",
+      "Bash(ddev push *)",
+      "Bash(ddev auth ssh *)"
+    ]
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "This is a demo/rehearsal workspace. The project in the working directory is a disposable local copy of a website, restorable from a dump with one command.",
+      "Trusted local domains: localhost, 127.0.0.1, *.ddev.site, and the *.coder.ddev.com proxy URLs that route to this workspace's own DDEV project.",
+      "Nothing in this workspace can reach a production database or production web server."
+    ],
+    "allow": [
+      "$defaults",
+      "Bulk UPDATE, DELETE and schema changes against the local DDEV project's database are allowed.",
+      "Deleting or rewriting content and files inside the local project's docroot is allowed.",
+      "HTTP requests to the local DDEV site, on .ddev.site or its coder.ddev.com proxy URL, are allowed."
+    ],
+    "soft_deny": [
+      "$defaults"
+    ]
+  }
+}
