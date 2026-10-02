@@ -32,7 +32,21 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(pagesDir, { recursive: true });
 
 const items = await config.listContent({ root });
-const assetUrls = (await config.listAssets?.({ root })) ?? [];
+const listedAssets = (await config.listAssets?.({ root })) ?? [];
+// Only assets that actually resolve on the source count as "known". A file the database lists
+// but the server 404s is already broken on the live site; fidelity means it stays that way,
+// so links to it are recorded as broken rather than asserted.
+const assetUrls = [];
+const missingAssets = [];
+for (const u of listedAssets) {
+  let status = null;
+  try {
+    status = (await fetch(`${baseOrigin}${u}`, { redirect: 'manual' })).status;
+  } catch {
+    status = 'error';
+  }
+  (status === 200 ? assetUrls : missingAssets).push(status === 200 ? u : { url: u, status });
+}
 
 const safeName = (p) => (p || 'home').replace(/\//g, '__').replace(/[^a-zA-Z0-9_.-]/g, '_') + '.json';
 const keyOf = (p) => p.replace(/^\/+/, '').replace(/\/+$/, '');
@@ -124,9 +138,10 @@ unmappedLinks.sort((a, b) => b.uses - a.uses);
 const index = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  counts: { pages: pages.length, skipped, byType, ...totals, discoveredRoutes: routes.length, brokenOrRestrictedLinks: unmappedLinks.length },
+  counts: { pages: pages.length, skipped, assets: assetUrls.length, missingAssets: missingAssets.length, byType, ...totals, discoveredRoutes: routes.length, brokenOrRestrictedLinks: unmappedLinks.length },
   pages,
   assets: assetUrls,
+  missingAssets,
   knownPaths: [...knownPaths].sort(),
   brokenOrRestrictedLinks: unmappedLinks,
 };
