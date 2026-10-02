@@ -9,6 +9,13 @@
     },
     {
       "path": "*",
+      "kind": "access",
+      "match": "got 404",
+      "target": "static",
+      "reason": "A static archive has no unpublished pages; a missing page is as private as a 403. Applies only when MIGRATION_TARGET=static."
+    },
+    {
+      "path": "*",
       "kind": "menu",
       "match": "breadcrumb",
       "reason": "Static export has no breadcrumb trail."
