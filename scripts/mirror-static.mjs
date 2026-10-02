@@ -3,7 +3,7 @@
 // semantic baseline. It is the second "rendering" used to prove the suite is
 // platform-independent, and a stand-in for the static-HTML migration in rehearsals.
 //
-//   node kit/scripts/mirror-static.mjs --out /tmp/site-static [--root <dir>] [--ca <rootCA.pem>]
+//   node kit/scripts/mirror-static.mjs --out /tmp/site-static [--from <url>] [--root <dir>] [--ca <rootCA.pem>]
 //
 // Needs wget and network access to the source site (run it where the source resolves, e.g.
 // inside the DDEV web container). Links between mirrored pages are rewritten to relative
@@ -20,7 +20,9 @@ const out = path.resolve(get('--out', '/tmp/site-static'));
 const ca = get('--ca', null); // a CA certificate for wget to trust, e.g. mkcert's rootCA.pem on the host
 
 const index = JSON.parse(readFileSync(path.join(root, 'baseline/semantic/index.json'), 'utf8'));
-const base = index.baseUrl.replace(/\/$/, '');
+// Crawl the site named by --from (for example the prepared copy), not necessarily the original the
+// baseline was captured from. The page paths come from the baseline either way.
+const base = (get('--from', null) ?? index.baseUrl).replace(/\/$/, '');
 const urls = [...new Set([
   ...index.pages.map((p) => `${base}/${p.path.replace(/^\/+/, '')}`),
   // Linked files (PDFs and the like) are not "page requisites", so wget would skip them.
