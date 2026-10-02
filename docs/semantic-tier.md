@@ -82,11 +82,14 @@ ddev exec -d /var/www/html/test/playwright \
   'TEST_BASE_URL=http://localhost:4173 npx playwright test --grep "semantic:"'
 ```
 
-A throwaway second target for rehearsals:
+A throwaway second target for rehearsals. `serve-static.mjs --run` starts the server, runs your
+command with `TEST_BASE_URL` already pointing at it, stops the server, and exits with the command's
+exit code, so nothing is left running:
 
 ```bash
 ddev exec -d /var/www/html/test/playwright 'node kit/scripts/mirror-static.mjs --out /tmp/site-static'
-ddev exec -d /var/www/html/test/playwright 'node kit/scripts/serve-static.mjs --dir /tmp/site-static --port 4173 &'
+ddev exec -d /var/www/html/test/playwright \
+  'node kit/scripts/serve-static.mjs --dir /tmp/site-static --run "npx playwright test --grep semantic:"'
 ```
 
 ## Deliberate differences
