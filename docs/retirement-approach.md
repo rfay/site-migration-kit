@@ -37,32 +37,57 @@ the originals before copying a command.
 | Old URLs should still work (redirects) | Not modeled yet. The semantic tier checks that every captured path resolves, so a missing redirect shows up as a missing page |
 | HTTrack for a one-time export, the Static Generator module for ongoing maintenance | A retired site is the one-time case; for that, a crawl-based export is the natural fit |
 
-## The plan for this series: a sibling DDEV project
+## The plan for this series: three sites
 
-Instead of publishing to GitHub Pages, the static copy is served locally, next to the original, so the
-same suite can be pointed at both.
+The series recommends changing the site before it is turned into HTML: removing forms, search,
+comments, AJAX and login blocks, and stripping shortlinks. That means the crawl must read a working
+dynamic site that has been *prepared*, and the original must stay untouched, because it is the source
+of truth for the baseline and for the drift check. So there are three DDEV projects, side by side on
+the same Coder workspace:
 
-1. **A sibling directory and DDEV project**, for example `randyfay-static` next to `randyfay`, whose
-   docroot is the folder of exported HTML. It runs on the same Coder workspace as the original, so the
-   original and the retired copy can be compared side by side in one browser.
-2. **Export with a crawler** (HTTrack as in the series, or `wget`, which `kit/scripts/mirror-static.mjs`
-   already wraps) from the original into the sibling project's docroot.
-3. **Run the suite against the sibling's URL** (`TEST_BASE_URL=https://randyfay-static.ddev.site`) with
-   the semantic, visible-text, access and asset checks, and give the run a negative control.
-4. **Review what failed.** Early failures are usually gaps in the baseline or the export (pages the
-   crawler never reached), not content loss. Anything that is a deliberate removal goes into
-   `expected-differences.json` with a reason.
+| Site | Role | Rule |
+|---|---|---|
+| `randyfay` (the original) | Where the baseline is captured. The reference. | Never modified by the retirement work |
+| `randyfay-prep` | A throwaway copy where the series' preparation changes are applied | Always rebuilt from a pristine restore, so the prep is a script that can be re-run |
+| `randyfay-static` | The exported HTML, served as a static site | Its docroot is a subdirectory (`public/`), filled by the crawl |
+
+The pipeline, in one direction:
+
+1. **Restore** `randyfay-prep` from a pristine dump of the original (database and files).
+2. **Prepare** it with committed scripts, one per change from the series (disable comments, remove
+   forms and search blocks, strip shortlinks, and so on). Each script reports a count, so a script that
+   changed 40 things yesterday and 0 today says something broke.
+3. **Crawl** `randyfay-prep` into `randyfay-static/public/` with HTTrack or `wget`.
+4. **Check** `randyfay-static` against the baseline captured from the original, with the semantic,
+   visible-text, access and asset checks, and a negative control.
+5. **Review** every failure. Early ones are usually gaps in the baseline or the crawl, not content loss.
+   A removal that came from a prep script is declared in `expected-differences.json` with the reason, so
+   the preparation decisions and the allowed differences stay in step.
+
+Why a third site rather than editing the original: the prep changes are deliberate losses (comments,
+forms, search) that would otherwise contaminate the reference, and a prep site that is rebuilt from a
+restore every time cannot drift into an unreproducible state.
+
+### Settled
+
+- **One project's container can reach another's** at `https://<name>.ddev.site` (and by container name,
+  `http://ddev-<name>-web`). Both resolve to the router, so the suite can run from the original
+  project's container against the static site, with no extra setup. (A request made while the router was
+  being rebuilt hung; once it was healthy it answered normally.)
+- **The static site is reachable from a browser** through its Coder URL once its project name is in the
+  workspace's registered list.
 
 ### Things to verify when we build it (not yet tried)
 
 - **Serving extensionless URLs.** A crawler may save `/blogs/foo` as `blogs/foo.html`. The stock DDEV
   nginx config will not find that for a request to `/blogs/foo`. Either export in the
-  `/blogs/foo/index.html` form (the series' HTTrack `-N` setting does this for GitHub Pages) or add a
-  `try_files $uri $uri.html $uri/ =404;` rule to the sibling project's nginx config.
-- **Reaching one DDEV project from another's container.** The suite runs inside the original project's
-  web container. Whether `https://randyfay-static.ddev.site` resolves to the router from there needs
-  testing. If it does not, run the suite from the static project's own container instead.
-- **Browser access on Coder.** The sibling project's name has to be in the workspace's registered list
-  of DDEV project names, or the Coder proxy URL will not route to it until the workspace is edited and
-  restarted (`coder-setup` prints this warning).
-- **Production safety.** The sibling directory is a throwaway export: no deploy, no push, no credentials.
+  `/blogs/foo/index.html` form (the series' HTTrack `-N` setting does this for GitHub Pages), or add a
+  `.ddev/nginx/` snippet with a regular-expression location for dotless paths that tries `$uri.html` and
+  `$uri/index.html`.
+- **Setting the static project's docroot to `public/`.** Today its docroot is the project root, which
+  also exposes `.ddev/`. `mirror-static.mjs` now refuses to empty a directory that looks like a project
+  root, for exactly this reason.
+- **Naming the prep project.** It is a copy of the original's code, so its DDEV project name has to be
+  different (`randyfay-prep`), and registered in the workspace's list of project names before Coder will
+  route a browser to it.
+- **Production safety.** All three are throwaway: no deploy, no push, no credentials.
