@@ -69,7 +69,7 @@ export function registerSemanticSuite({ test, expect, config, root }) {
         diffs.push({ kind: 'status', item: `expected 200, got ${res.status()}` });
       } else {
         const target = extractTarget(await res.text(), { pageUrl, baseUrl: baseURL });
-        diffs.push(...compareSemantic(baseRec, target, { knownPaths }));
+        diffs.push(...compareSemantic(baseRec, target, { knownPaths, strict: config.strict ?? {} }));
 
         // Baseline images must exist AND load on the target (internal ones; images hosted
         // elsewhere are only checked for presence, since the network is not part of the test).
