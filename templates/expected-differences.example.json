@@ -1,0 +1,17 @@
+{
+  "_comment": "Deliberate, reviewed differences between the baseline and a migration target. Anything not listed here fails the suite. Each entry is a decision a human made, not a way to silence a failure; give a reason.",
+  "entries": [
+    {
+      "path": "content/some-page",
+      "kind": "lines",
+      "match": "Log in to post comments",
+      "reason": "Comments are intentionally dropped from the static export."
+    },
+    {
+      "path": "*",
+      "kind": "menu",
+      "match": "breadcrumb",
+      "reason": "Static export has no breadcrumb trail."
+    }
+  ]
+}
