@@ -36,6 +36,9 @@ The method was developed on a smaller practice site, [randyfay.com](https://rand
 
 ## Strategy
 
+New to this? Start with [docs/how-it-works.md](docs/how-it-works.md), the whole strategy in plain
+language, then come back here for the detail.
+
 ### 1. Define success before you touch anything
 
 Write the tests first, against the site as it exists today, and freeze the result as a
@@ -126,6 +129,10 @@ kit, and it gets recorded.**
 | Access tier (unpublished content must still return 403) | randyfay.com `test/playwright/tests/` | prototyped, not yet moved into the kit |
 | Path tier (every alias, listing route and asset resolves) | covered by the semantic tier | working; redirects not yet modeled |
 | Visual tier (curated screenshots, informational only) | `tests/` | prototyped on randyfay.com |
+| In-browser visible-text check (hidden text, script-built content) | [`tests/visible-suite.mjs`](tests/visible-suite.mjs) | working; verified with a hidden-paragraph negative control |
+| Additions report (what the target shows that the baseline never had) | [`scripts/additions-report.mjs`](scripts/additions-report.mjs) | working; subtracts the source's own chrome; verified with a leaked-macro control |
+| Source-drift check (has the original changed since the freeze?) | [`scripts/check-source-drift.mjs`](scripts/check-source-drift.mjs) | working; verified on a tampered baseline copy |
+| Strict options: line order and image alt text | `config.strict` in `migration.config.mjs` | working; off by default |
 | Expected-differences allowlist | [`templates/`](templates/expected-differences.example.json), `lib/compare.mjs` | working |
 | Subset runs by tag (`@smoke`, per content type, `@assets`) | Playwright `--grep` | prototyped on randyfay.com |
 | Second target for rehearsals: wget mirror and static server | [`scripts/`](scripts/) | working |

@@ -1,5 +1,7 @@
 # The semantic tier
 
+*For the whole strategy in plain language, see [how-it-works.md](how-it-works.md). This page is the detail on the main check.*
+
 A platform-independent check that **nothing the original site showed is missing from a
 migration target**. The same suite, unchanged, judges a static-HTML export and a Drupal 11
 rebuild.
