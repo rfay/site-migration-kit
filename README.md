@@ -151,13 +151,22 @@ behind git tags.
 - **Part 1 — Road Test.** Plan in plan mode; a read-only audit of the source; build the
   tiers; freeze the baseline; self-check passes; a deliberate negative control fails, which
   proves the suite can detect a problem.
-- **Part 2 — The Last Ride.** Show the pipeline shape; run it; iterate on failures, using the
+- **Part 2 — The Last Ride.** Retire the site to static HTML, following Karen Stevenson's series ([details](docs/retirement-approach.md)), served from a sibling DDEV project. Show the pipeline shape; run it; iterate on failures, using the
   allowlist and discoveries log; review whatever was allowlisted.
 - **Part 3 — The Long Haul.** Onboard Claude the way you would a new engineer — explore D6,
   learn D11, write the plan — then execute with audience input and run the same suite. The
   result is reported as it comes out.
 
 Run sheets with per-stage timings, from the randyfay.com rehearsal, are in [webinar/PLAN.md](webinar/PLAN.md).
+
+## Prior art
+
+The static-HTML path builds on **Karen Stevenson**'s three-part Lullabot series on retiring a
+Drupal site. See [docs/retirement-approach.md](docs/retirement-approach.md) for how we use it.
+
+- [Sending a Drupal Site Into Retirement](https://www.lullabot.com/articles/sending-a-drupal-site-into-retirement)
+- [Sending a Drupal Site Into Retirement Using HTTrack](https://www.lullabot.com/articles/sending-drupal-site-retirement-using-httrack)
+- [Sending a Drupal Site into Retirement Using the Static Generation Module](https://www.lullabot.com/articles/sending-drupal-site-retirement-using-static-generation-module)
 
 ## Background reading
 

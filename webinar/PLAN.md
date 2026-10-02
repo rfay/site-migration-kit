@@ -37,11 +37,14 @@ Tag: `s1-baseline-frozen`.
 
 ## Part 2: The Last Ride (Oct 23): static HTML
 
-Goal: convert the site to static HTML and prove it with the Part 1 suite.
+Goal: convert the site to static HTML and prove it with the Part 1 suite. The approach follows Karen
+Stevenson's Lullabot series on retiring Drupal sites (credit and links in
+[docs/retirement-approach.md](../docs/retirement-approach.md)). The static copy runs as a sibling DDEV
+project next to the original, on the same Coder workspace, so both can be compared side by side.
 
 | Min | What | Notes |
 |---|---|---|
-| 0-10 | Pipeline shape and plan | restore pristine dump -> transform -> crawl/export -> verify, one command. |
+| 0-10 | Pipeline shape and plan; the sibling project | restore pristine dump -> transform -> crawl/export -> verify, one command. Credit Karen Stevenson's series up front. Before the session, settle the open questions in `docs/retirement-approach.md` (extensionless URLs, reaching one DDEV project from another, the Coder project-name list). |
 | 10-35 | Run it; iterate on failures | The first failures are usually gaps in the baseline or the export, not in the content (rehearsal: 243 menu failures were breadcrumb routes nobody had captured). Fix the right thing and say which it was. |
 | 35-50 | Deliberate changes | Anything chosen (drop comments, delete empty nodes, rewrite dead embeds) goes in `expected-differences.json` with a reason. |
 | 50-60 | Green run and review | Review every allowlisted difference. Re-run from a clean restore to show repeatability. |

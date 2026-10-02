@@ -84,7 +84,7 @@ here.
 
 - **Baseline / reference:** the committed files that describe the old site today. They never change
   once a migration starts.
-- **Static copy:** a version of the site made of plain HTML files. It is one possible *target* of a
+- **Static copy:** a version of the site made of plain HTML files (see [retirement-approach.md](retirement-approach.md), based on Karen Stevenson's Lullabot series on retiring Drupal sites). It is one possible *target* of a
   migration. It is not the same thing as the baseline, though both are "static files". The baseline is
   what we compare *to*; the static copy is what we might compare.
 - **cheerio:** a small library that reads an HTML page and lets a script ask questions about it ("give
