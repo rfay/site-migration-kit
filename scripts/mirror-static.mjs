@@ -20,7 +20,11 @@ const out = path.resolve(get('--out', '/tmp/site-static'));
 
 const index = JSON.parse(readFileSync(path.join(root, 'baseline/semantic/index.json'), 'utf8'));
 const base = index.baseUrl.replace(/\/$/, '');
-const urls = [...new Set(index.pages.map((p) => `${base}/${p.path.replace(/^\/+/, '')}`))];
+const urls = [...new Set([
+  ...index.pages.map((p) => `${base}/${p.path.replace(/^\/+/, '')}`),
+  // Linked files (PDFs and the like) are not "page requisites", so wget would skip them.
+  ...(index.assets ?? []).map((a) => `${base}${a}`),
+])];
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });

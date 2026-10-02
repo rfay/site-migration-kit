@@ -43,6 +43,7 @@ for (const u of assetUrls) knownPaths.add(keyOf(decodeURIComponent(u)));
 
 const pages = [];
 const internalLinkUses = new Map();
+const menuKeys = new Set();
 const totals = { lines: 0, images: 0, links: 0, menuItems: 0 };
 const byType = {};
 let skipped = 0;
@@ -69,6 +70,7 @@ for (const it of items) {
     totals.images += rec.images.length;
     totals.links += rec.links.length;
     totals.menuItems += Object.values(rec.menus).reduce((n, m) => n + m.length, 0);
+    for (const m of Object.values(rec.menus)) for (const item of m) menuKeys.add(item.key);
     byType[it.type] = (byType[it.type] ?? 0) + 1;
     for (const l of rec.links) {
       if (!l.internal || knownPaths.has(l.key)) continue;
@@ -80,32 +82,59 @@ for (const it of items) {
   }
 }
 
-// Internal links that point at something the baseline did not capture: dynamic routes, dead
-// links, taxonomy listings, etc. Not asserted by the suite; recorded here as discoveries.
+// Routes that are not content nodes but are part of what a visitor navigates: listing pages,
+// taxonomy pages, the home page, menu targets. They are discovered from the links and menus
+// of the pages above (the content listing alone cannot know about them), fetched, and
+// captured as baseline pages of type "route". Per-site config can exclude patterns such as
+// comment permalinks. Everything else that does not return 200 is recorded, not tested.
+const excludeRoutes = (config.discover?.exclude ?? []).map((r) => new RegExp(r));
+const candidates = new Set([...internalLinkUses.keys(), ...[...menuKeys].filter((k) => !knownPaths.has(k))]);
 const unmappedLinks = [];
-for (const [key, use] of internalLinkUses) {
+const routes = [];
+for (const key of [...candidates].sort()) {
+  const uses = internalLinkUses.get(key) ?? { count: 0, from: [] };
   let status = null;
   try {
     status = (await fetch(`${baseOrigin}/${key}`, { redirect: 'manual' })).status;
   } catch {
     status = 'error';
   }
-  unmappedLinks.push({ key, status, uses: use.count, from: use.from });
+  const skip = key.includes('?') || excludeRoutes.some((r) => r.test(key));
+  if (status === 200 && !skip) {
+    const pageUrl = `${baseUrl}/${key}`;
+    const res = await fetch(pageUrl, { redirect: 'follow' });
+    const rec = extractSource(await res.text(), {
+      pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] },
+    });
+    const file = `pages/route__${safeName(key)}`;
+    writeFileSync(path.join(outDir, file), JSON.stringify(rec, null, 2) + '\n');
+    pages.push({ path: key, id: `route:${key}`, type: 'route', title: rec.primaryHeading, tags: ['route'], file });
+    routes.push(key);
+    knownPaths.add(key);
+    byType.route = (byType.route ?? 0) + 1;
+    totals.lines += rec.lines.length;
+    totals.images += rec.images.length;
+    totals.links += rec.links.length;
+  } else if (status !== 200) {
+    unmappedLinks.push({ key, status, uses: uses.count, from: uses.from });
+  }
 }
 unmappedLinks.sort((a, b) => b.uses - a.uses);
 
 const index = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  counts: { pages: pages.length, skipped, byType, ...totals, unmappedLinks: unmappedLinks.length },
+  counts: { pages: pages.length, skipped, byType, ...totals, discoveredRoutes: routes.length, brokenOrRestrictedLinks: unmappedLinks.length },
   pages,
+  assets: assetUrls,
   knownPaths: [...knownPaths].sort(),
-  unmappedLinks,
+  brokenOrRestrictedLinks: unmappedLinks,
 };
 writeFileSync(path.join(outDir, 'index.json'), JSON.stringify(index, null, 2) + '\n');
 
 console.log(`Semantic baseline: ${pages.length} page(s), ${totals.lines} lines, ${totals.images} images, ${totals.links} links, ${totals.menuItems} menu items.`);
 console.log(`By type: ${JSON.stringify(byType)}`);
-console.log(`Internal links to paths the baseline did not capture: ${unmappedLinks.length} (see index.json "unmappedLinks").`);
+console.log(`Discovered ${routes.length} listing/menu route(s) beyond the content list.`);
+console.log(`Internal links that are broken or restricted on the source: ${unmappedLinks.length} (index.json "brokenOrRestrictedLinks").`);
 if (skipped) console.log(`Skipped ${skipped} path(s) that did not return 200.`);
 console.log(`Wrote ${outDir}`);
