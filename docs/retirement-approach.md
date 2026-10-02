@@ -68,6 +68,34 @@ Why a third site rather than editing the original: the prep changes are delibera
 forms, search) that would otherwise contaminate the reference, and a prep site that is rebuilt from a
 restore every time cannot drift into an unreproducible state.
 
+### Built and run on randyfay.com's development copy (2026-10-02)
+
+The pipeline exists as committed scripts in that site's repository (`retire/`): snapshot the pristine
+database from the original once, then `run.sh` restores the prep copy, prepares it, crawls it into the
+static project and verifies. The whole run takes about 45 seconds and ends with **556 passing checks**
+(246 semantic, 244 visible-text, 40 access, 26 asset).
+
+What we learned, in the order it happened:
+
+1. **A no-preparation control run first.** Crawling the prep copy with no changes passed 490 of 490
+   semantic and visible checks. A faithful crawl loses nothing, so any later failure is caused by a
+   deliberate prep change. This is worth doing before writing a single prep script.
+2. **Survey the site's own data before choosing prep steps; don't apply the generic list.** On this
+   site the series' checklist reduced to two steps. There was no shortlink tag to strip. The only form
+   was the search block. And 114 of 126 nodes already had comments closed: 670 comments (real content,
+   up to 55 on one page) were being shown read-only, so "disable comments" would have deleted content.
+   The prep step *closes* the 12 still-open threads instead, which keeps every comment's text.
+3. **The checks caught a prep side effect we had not thought of.** Removing the search block removed its
+   heading, "Search", from 28 listing pages (the baseline captures a listing page's whole main region).
+   It is the only difference the preparation causes, and it is recorded as one reviewed entry.
+4. **The access tier needed a per-target decision.** A static archive has no unpublished pages, so they
+   answer 404 where the original answered 403. A missing page is as private as a 403, but accepting 404
+   everywhere would weaken the check on a Drupal 11 target. Expected-differences entries can now be
+   scoped with `"target": "static"`, applied only when the run sets `MIGRATION_TARGET=static`. A private
+   page that *leaks* into the archive still fails ("expected 403, got 200").
+5. **Entries should be as narrow as their reason.** `equals` matches a whole line and `kind` can be a
+   list, so the "Search" decision cannot quietly hide a different line or a different kind of difference.
+
 ### Settled
 
 - **One project's container can reach another's** at `https://<name>.ddev.site` (and by container name,
@@ -76,6 +104,9 @@ restore every time cannot drift into an unreproducible state.
   being rebuilt hung; once it was healthy it answered normally.)
 - **The static site is reachable from a browser** through its Coder URL once its project name is in the
   workspace's registered list.
+- **Preparation can be done with `bee` (or `drush`) and `jq`**, as scripts that print a count. `ddev bee
+  eval` passes its arguments to the shell unquoted and mangles PHP; write the PHP to a file in the project
+  and use `bee php-script` instead.
 
 ### Things to verify when we build it (not yet tried)
 
@@ -84,8 +115,9 @@ restore every time cannot drift into an unreproducible state.
   `/blogs/foo/index.html` form (the series' HTTrack `-N` setting does this for GitHub Pages), or add a
   `.ddev/nginx/` snippet with a regular-expression location for dotless paths that tries `$uri.html` and
   `$uri/index.html`.
-- **Setting the static project's docroot to `public/`.** Today its docroot is the project root, which
-  also exposes `.ddev/`. `mirror-static.mjs` now refuses to empty a directory that looks like a project
+- **Setting the static project's docroot to `public/`.** The crawl already writes there, but until the
+  docroot is changed the static project still serves its project root (which also exposes `.ddev/`), so
+  `40-verify.sh` runs in its `LOCAL_SERVE=1` mode, which serves the crawl from the original's container. `mirror-static.mjs` now refuses to empty a directory that looks like a project
   root, for exactly this reason.
 - **Naming the prep project.** It is a copy of the original's code, so its DDEV project name has to be
   different (`randyfay-prep`), and registered in the workspace's list of project names before Coder will
