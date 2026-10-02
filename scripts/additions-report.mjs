@@ -8,10 +8,15 @@
 // leaked as raw text, a stray debug line, content duplicated from another page), so this report
 // lets a human look. It never fails a run and is not a test.
 //
-// Because the target is read without selectors (whole <body>), its text includes theme chrome:
-// menus, footers, sidebars. A line that appears on at least --chrome (default 30%) of pages is
-// treated as chrome and left out, as is each page's own title. What remains per page is
-// "extra lines", reported with counts. Expect some noise; it is a prompt to look, not a verdict.
+// The target is read without selectors (whole <body>), so its text includes theme chrome: menus,
+// footers, sidebars, book navigation. Three things are subtracted so what is left is genuinely new:
+//   1. everything the SOURCE page showed anywhere on the page (the baseline records only the
+//      content region, so the source's own chrome would otherwise look like an addition). This
+//      needs the source site running, which it is in a rehearsal and after a pristine restore;
+//      pass --no-source to skip it (the report will be noisier);
+//   2. lines that appear on at least --chrome (default 30%) of the target's pages (its own chrome);
+//   3. each page's own title.
+// What remains per page is "extra lines". It is a prompt to look, not a verdict.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -23,6 +28,7 @@ const get = (flag, dflt) => (argv.indexOf(flag) >= 0 ? argv[argv.indexOf(flag) +
 const root = path.resolve(get('--root', process.cwd()));
 const target = (get('--target', process.env.TEST_BASE_URL) ?? '').replace(/\/$/, '');
 const chromeThreshold = Number(get('--chrome', '0.3'));
+const useSource = !argv.includes('--no-source');
 if (!target) {
   console.error('Give --target <url> (or set TEST_BASE_URL).');
   process.exit(2);
@@ -30,6 +36,8 @@ if (!target) {
 const out = path.resolve(get('--out', path.join(root, 'test-results', 'additions-report.md')));
 
 const index = JSON.parse(readFileSync(path.join(root, 'baseline/semantic/index.json'), 'utf8'));
+const config = (await import(pathToFileURL(path.join(root, 'migration.config.mjs')).href)).default;
+const sourceUrl = config.source.baseUrl.replace(/\/$/, '');
 
 const pages = [];
 for (const p of index.pages) {
@@ -49,10 +57,24 @@ const ok = pages.filter((p) => p.status === 200);
 for (const p of ok) for (const l of p.lines) seen.set(l, (seen.get(l) ?? 0) + 1);
 const isChrome = (l) => seen.get(l) / Math.max(ok.length, 1) >= chromeThreshold;
 
+// Whole-page lines of the source, per page, as the noise floor.
+async function sourceLines(p) {
+  if (!useSource) return new Set();
+  const url = `${sourceUrl}/${p.page.path.replace(/^\/+/, '')}`;
+  try {
+    const res = await fetch(url, { redirect: 'follow' });
+    if (res.status !== 200) return new Set();
+    return new Set(extractTarget(await res.text(), { pageUrl: url, baseUrl: sourceUrl }).lines);
+  } catch {
+    console.warn(`  could not read the source for ${p.page.path}; its report may be noisy`);
+    return new Set();
+  }
+}
+
 const results = [];
 for (const p of ok) {
   const base = JSON.parse(readFileSync(path.join(root, 'baseline/semantic', p.page.file), 'utf8'));
-  const known = new Set(base.lines);
+  const known = new Set([...base.lines, ...(await sourceLines(p))]);
   const own = new Set([normalizeText(base.primaryHeading), normalizeText(base.title)]);
   const extra = p.lines.filter((l) => l.length >= 3 && !known.has(l) && !isChrome(l) && !own.has(l));
   if (extra.length) results.push({ path: p.page.path, extra });
