@@ -37,6 +37,20 @@ export function registerSemanticSuite({ test, expect, config, root }) {
     expect(missing, 'published paths missing from the baseline').toEqual([]);
   });
 
+  // Every file the baseline knows about must still resolve on the target. This is what catches
+  // a linked file (a PDF, a download) that vanished even though the page still links to it:
+  // the per-page checks verify that a link is present, not that its target exists.
+  test('semantic: every baseline asset resolves @assets', async ({ request, baseURL }) => {
+    const missing = [];
+    for (const url of index.assets ?? []) {
+      const r = await request.get(new URL(url.replace(/^\/+/, ''), baseURL.replace(/\/?$/, '/')).href);
+      if (r.status() !== 200) missing.push(`${url} (${r.status()})`);
+    }
+    const entries = allow.filter((e) => e.kind === 'assets');
+    const unexpected = missing.filter((m) => !entries.some((e) => !e.match || m.includes(e.match)));
+    expect(unexpected, 'baseline assets that do not resolve on the target').toEqual([]);
+  });
+
   for (const page of index.pages) {
     const tags = [...new Set([`@${page.type}`, ...page.tags.map((t) => `@${t}`)])];
     test(`semantic: ${page.path} (${page.id}) ${tags.join(' ')}`, async ({ request, baseURL }) => {
