@@ -121,13 +121,15 @@ kit, and it gets recorded.**
 | Stage prompts | `prompts/` | planned |
 | Plan and discoveries templates | `templates/` | planned |
 | Manifest generation from the source (current-revision joins, unpublished handling) | `scripts/` | prototyped on randyfay.com |
-| Semantic extraction baseline (platform-independent content check) | `lib/`, `tests/` | planned — replaces the raw-HTML diff prototype |
-| Asset integrity tier (SHA-256 of every file) | `tests/` | prototyped on randyfay.com |
-| Access tier (unpublished content must still return 403) | `tests/` | prototyped on randyfay.com |
-| Path and redirect tier (every URL alias resolves) | `tests/` | planned |
+| Semantic extraction baseline (platform-independent content, route, menu and asset check) | [`lib/`](lib/), [`tests/`](tests/), [docs](docs/semantic-tier.md) | working; verified on randyfay.com's development copy and a static mirror, with negative controls |
+| Asset integrity tier (SHA-256 of every file) | randyfay.com `test/playwright/tests/` | prototyped; the semantic tier also asserts every asset resolves |
+| Access tier (unpublished content must still return 403) | randyfay.com `test/playwright/tests/` | prototyped, not yet moved into the kit |
+| Path tier (every alias, listing route and asset resolves) | covered by the semantic tier | working; redirects not yet modeled |
 | Visual tier (curated screenshots, informational only) | `tests/` | prototyped on randyfay.com |
-| Expected-differences allowlist | `templates/` | planned |
+| Expected-differences allowlist | [`templates/`](templates/expected-differences.example.json), `lib/compare.mjs` | working |
 | Subset runs by tag (`@smoke`, per content type, `@assets`) | Playwright `--grep` | prototyped on randyfay.com |
+| Second target for rehearsals: wget mirror and static server | [`scripts/`](scripts/) | working |
+| Vendor the kit into a site repo as plain files (no submodule) | [`scripts/vendor-into.sh`](scripts/vendor-into.sh) | working |
 | Restore, transform, crawl, verify pipeline | `scripts/` | planned |
 
 Tests run with Playwright under DDEV via
@@ -148,7 +150,7 @@ behind git tags.
   learn D11, write the plan — then execute with audience input and run the same suite. The
   result is reported as it comes out.
 
-Detailed run sheets with per-stage timings will live in `webinar/`.
+Run sheets with per-stage timings, from the randyfay.com rehearsal, are in [webinar/PLAN.md](webinar/PLAN.md).
 
 ## Background reading
 

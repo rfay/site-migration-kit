@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#ddev-silent-no-warn
+
+## Description: Install dev-only tooling (ddev-playwright) unless this is production
+## Usage: dev-tools
+## Example: "ddev dev-tools"
+
+# TEMPLATE: copy to .ddev/commands/host/dev-tools in the site repo, and add
+# .ddev/config.dev-tools.yaml with a pre-start hook that runs `ddev dev-tools`.
+
+# The Playwright add-on adds a large web-image build, a VNC daemon and extra ports.
+# That is wanted on a developer's copy and must never reach production, so the add-on's
+# files are gitignored and installed on demand here. Production runs a project whose
+# primary URL is https://randyfay.com; every dev copy is https://<name>.ddev.site.
+# Anything that is not clearly a *.ddev.site URL is treated as production: do nothing.
+
+cd "${DDEV_APPROOT:-$PWD}" || exit 1
+
+PLAYWRIGHT_ADDON_VERSION="${PLAYWRIGHT_ADDON_VERSION:-v0.5.8}"
+
+url="${DDEV_PRIMARY_URL:-}"
+if [ -z "$url" ]; then
+  url=$(ddev describe -j 2>/dev/null | jq -r '.raw.primary_url // empty' 2>/dev/null)
+fi
+
+case "$url" in
+  http://*.ddev.site | http://*.ddev.site:* | https://*.ddev.site | https://*.ddev.site:*) ;;
+  *) exit 0 ;;
+esac
+
+if [ ! -f .ddev/addon-metadata/ddev-playwright/manifest.yaml ]; then
+  # DDEV reads config.*.yaml before pre-start hooks run, so the add-on's config (daemons,
+  # ports, hooks) is not active until the NEXT start. Stop here on purpose: enabling the
+  # Playwright image build now would run before the add-on's own hook has filled in the
+  # test directory path.
+  echo "dev-tools: installing ddev-playwright ${PLAYWRIGHT_ADDON_VERSION} (dev copy: ${url})"
+  ddev add-on get Lullabot/ddev-playwright --version "${PLAYWRIGHT_ADDON_VERSION}" || exit 1
+  echo "dev-tools: installed. Run 'ddev restart' once to activate it."
+  exit 0
+fi
+
+# Installed on an earlier start, so its config and hooks are loaded on this one. The add-on
+# only builds browsers into the web image when Dockerfile.playwright exists (what
+# `ddev install-playwright` would create), so create it here; its own pre-start hook then
+# fills in the test directory.
+test_dir="${PLAYWRIGHT_TEST_DIR:-test/playwright}"
+if [ ! -f .ddev/web-build/Dockerfile.playwright ] && [ -f "${test_dir}/package.json" ]; then
+  cp .ddev/web-build/disabled.Dockerfile.playwright .ddev/web-build/Dockerfile.playwright
+  echo "dev-tools: enabled the Playwright image build (${test_dir})"
+fi

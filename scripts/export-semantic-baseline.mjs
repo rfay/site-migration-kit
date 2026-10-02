@@ -34,7 +34,7 @@ mkdirSync(pagesDir, { recursive: true });
 const items = await config.listContent({ root });
 const listedAssets = (await config.listAssets?.({ root })) ?? [];
 // Only assets that actually resolve on the source count as "known". A file the database lists
-// but the server 404s is already broken on the live site; fidelity means it stays that way,
+// but the server 404s is already broken on the source site; fidelity means it stays that way,
 // so links to it are recorded as broken rather than asserted.
 const assetUrls = [];
 const missingAssets = [];

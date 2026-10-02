@@ -8,8 +8,14 @@
 //   import { registerSemanticSuite } from '../kit/tests/semantic-suite.mjs';
 //   registerSemanticSuite({ test, expect, config, root: new URL('..', import.meta.url).pathname });
 //
-// Run all:      TEST_BASE_URL=<target> ddev playwright test tests/semantic.spec.ts
-// A subset:     ... --grep @smoke        (or @<type>, or a path fragment)
+// Tests are registered from this file, so Playwright attributes them here, not to the site's
+// spec: select them by title (--grep), not by file path.
+//
+// Run all:      ddev playwright test --grep "semantic:"
+// A subset:     ddev playwright test --grep "semantic:.*@smoke"   (or @<type>, @route, @assets)
+// A target:     ddev exec -d /var/www/html/test/playwright \
+//                 'TEST_BASE_URL=<target> npx playwright test --grep "semantic:"'
+//               (set the variable INSIDE the container; a host-side env var is not forwarded)
 
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
