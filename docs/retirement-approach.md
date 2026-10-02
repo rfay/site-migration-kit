@@ -96,6 +96,12 @@ What we learned, in the order it happened:
 5. **Entries should be as narrow as their reason.** `equals` matches a whole line and `kind` can be a
    list, so the "Search" decision cannot quietly hide a different line or a different kind of difference.
 
+Verified through the static project's own URL (not a stand-in server): 556 of 556, and the whole pipeline
+from a pristine restore in about 43 seconds. Four deliberate breaks made directly in the served files were
+each caught by the right tier: removed text (semantic and visible-text, line named), a deleted file (asset
+tier and the "every asset resolves" test), a private page leaked into the archive (access: "expected 403,
+got 200"), and a CSS-hidden paragraph (visible-text only). A fresh crawl then restored a clean copy.
+
 ### Settled
 
 - **One project's container can reach another's** at `https://<name>.ddev.site` (and by container name,
@@ -104,22 +110,23 @@ What we learned, in the order it happened:
   being rebuilt hung; once it was healthy it answered normally.)
 - **The static site is reachable from a browser** through its Coder URL once its project name is in the
   workspace's registered list.
+- **The static project setup that works:** `ddev config --docroot=public` (so `.ddev/` is not served), the
+  crawl written into `public/`, and [`templates/static-urls.nginx.conf`](../templates/static-urls.nginx.conf)
+  copied to the project's `.ddev/nginx/`. Stock nginx answers `/blog.html` but 404s `/blog`; the snippet is a
+  regular-expression location for dotless paths that tries `$uri.html`, then `$uri/index.html`, then a
+  directory index, and it leaves real files (PDFs, images, CSS) alone. After `ddev restart`, extensionless
+  URLs answer 200 and a missing page still answers 404.
 - **Preparation can be done with `bee` (or `drush`) and `jq`**, as scripts that print a count. `ddev bee
   eval` passes its arguments to the shell unquoted and mangles PHP; write the PHP to a file in the project
   and use `bee php-script` instead.
 
-### Things to verify when we build it (not yet tried)
+### Still to verify
 
-- **Serving extensionless URLs.** A crawler may save `/blogs/foo` as `blogs/foo.html`. The stock DDEV
-  nginx config will not find that for a request to `/blogs/foo`. Either export in the
-  `/blogs/foo/index.html` form (the series' HTTrack `-N` setting does this for GitHub Pages), or add a
-  `.ddev/nginx/` snippet with a regular-expression location for dotless paths that tries `$uri.html` and
-  `$uri/index.html`.
-- **Setting the static project's docroot to `public/`.** The crawl already writes there, but until the
-  docroot is changed the static project still serves its project root (which also exposes `.ddev/`), so
-  `40-verify.sh` runs in its `LOCAL_SERVE=1` mode, which serves the crawl from the original's container. `mirror-static.mjs` now refuses to empty a directory that looks like a project
-  root, for exactly this reason.
 - **Naming the prep project.** It is a copy of the original's code, so its DDEV project name has to be
   different (`randyfay-prep`), and registered in the workspace's list of project names before Coder will
-  route a browser to it.
-- **Production safety.** All three are throwaway: no deploy, no push, no credentials.
+  route a browser to it. (Done for this rehearsal.)
+- **Production safety.** All three are throwaway: no deploy, no push, no credentials. A copy made with
+  `cp -r` carries the original's committed DDEV hooks with it; check that none of them reinstall tooling
+  you removed from the copy.
+- **A site with real script-built content.** randyfay.com has almost none, so the visible-text tier has
+  not been tried against content a crawler captures only partly.
