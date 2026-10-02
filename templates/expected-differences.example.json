@@ -16,6 +16,13 @@
     },
     {
       "path": "*",
+      "kind": "*",
+      "equals": "Search",
+      "target": "static",
+      "reason": "The search block (a form) was removed because it cannot work on a static site; this is its heading. `equals` matches the whole line, so no other line is hidden."
+    },
+    {
+      "path": "*",
       "kind": "menu",
       "match": "breadcrumb",
       "reason": "Static export has no breadcrumb trail."
