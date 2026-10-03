@@ -97,15 +97,28 @@ for (const it of items) {
 }
 
 // Routes that are not content nodes but are part of what a visitor navigates: listing pages,
-// taxonomy pages, the home page, menu targets. They are discovered from the links and menus
-// of the pages above (the content listing alone cannot know about them), fetched, and
-// captured as baseline pages of type "route". Per-site config can exclude patterns such as
-// comment permalinks. Everything else that does not return 200 is recorded, not tested.
+// taxonomy pages, the home page, menu targets, and the pages of a paginated listing or comment
+// thread. They are discovered from the links and menus of the pages above (the content listing
+// alone cannot know about them), fetched, and captured as baseline pages of type "route".
+//
+// Discovery is transitive: a captured route's own links are followed too, which is how "page 2"
+// of a listing is found from "page 1". A link with a query string is followed only when every
+// parameter is named in config.discover.queryParams (for example ['page']); anything else with a
+// query, such as a login redirect, is dynamic and skipped. config.discover.exclude holds patterns
+// to skip entirely (comment permalinks). Whatever does not return 200 is recorded, not tested.
 const excludeRoutes = (config.discover?.exclude ?? []).map((r) => new RegExp(r));
-const candidates = new Set([...internalLinkUses.keys(), ...[...menuKeys].filter((k) => !knownPaths.has(k))]);
+const allowedQuery = new Set(config.discover?.queryParams ?? []);
+const eligibleQuery = (key) => {
+  if (!key.includes('?')) return true;
+  const params = [...new URLSearchParams(key.split('?')[1]).keys()];
+  return params.length > 0 && params.every((k) => allowedQuery.has(k));
+};
+const queue = [...new Set([...internalLinkUses.keys(), ...[...menuKeys].filter((k) => !knownPaths.has(k))])].sort();
+const queued = new Set(queue);
 const unmappedLinks = [];
 const routes = [];
-for (const key of [...candidates].sort()) {
+while (queue.length) {
+  const key = queue.shift();
   const uses = internalLinkUses.get(key) ?? { count: 0, from: [] };
   let status = null;
   try {
@@ -113,7 +126,7 @@ for (const key of [...candidates].sort()) {
   } catch {
     status = 'error';
   }
-  const skip = key.includes('?') || excludeRoutes.some((r) => r.test(key));
+  const skip = !eligibleQuery(key) || excludeRoutes.some((r) => r.test(key));
   if (status === 200 && !skip) {
     const pageUrl = `${baseUrl}/${key}`;
     const res = await fetch(pageUrl, { redirect: 'follow' });
@@ -129,27 +142,55 @@ for (const key of [...candidates].sort()) {
     totals.lines += rec.lines.length;
     totals.images += rec.images.length;
     totals.links += rec.links.length;
+    for (const l of rec.links) {
+      if (!l.internal || knownPaths.has(l.key) || queued.has(l.key)) continue;
+      queued.add(l.key);
+      queue.push(l.key);
+      internalLinkUses.set(l.key, { count: 1, from: [key] });
+    }
   } else if (status !== 200) {
     unmappedLinks.push({ key, status, uses: uses.count, from: uses.from });
   }
 }
 unmappedLinks.sort((a, b) => b.uses - a.uses);
 
+// Links and images that the original content deliberately points at its OWN public domain (for
+// example hardcoded http://example.com/... URLs from an old editor). They are preserved exactly,
+// and recorded here so a human can triage them: after a retirement they depend on the original
+// domain still being served, which is a decision, not an accident. Set config.ownDomains.
+const ownDomains = new Set((config.ownDomains ?? []).map((d) => d.toLowerCase().replace(/^www\./, '')));
+const hostOf = (u) => {
+  try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch { return null; }
+};
+const ownLinks = new Map();
+const ownImages = new Map();
+if (ownDomains.size) {
+  for (const p of pages) {
+    const rec = JSON.parse(readFileSync(path.join(outDir, p.file), 'utf8'));
+    for (const l of rec.links) if (!l.internal && ownDomains.has(hostOf(l.key))) (ownLinks.get(l.key) ?? ownLinks.set(l.key, new Set()).get(l.key)).add(p.path);
+    for (const i of rec.images) if (i.src && ownDomains.has(hostOf(i.src))) (ownImages.get(i.src) ?? ownImages.set(i.src, new Set()).get(i.src)).add(p.path);
+  }
+}
+const listOf = (m) => [...m.entries()].map(([url, ps]) => ({ url, pages: [...ps].sort() })).sort((a, b) => a.url.localeCompare(b.url));
+const ownDomainReferences = { domains: [...ownDomains], links: listOf(ownLinks), images: listOf(ownImages) };
+
 const index = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  counts: { pages: pages.length, skipped, assets: assetUrls.length, missingAssets: missingAssets.length, byType, ...totals, discoveredRoutes: routes.length, brokenOrRestrictedLinks: unmappedLinks.length },
+  counts: { pages: pages.length, skipped, assets: assetUrls.length, missingAssets: missingAssets.length, byType, ...totals, discoveredRoutes: routes.length, ownDomainLinks: ownDomainReferences.links.length, ownDomainImages: ownDomainReferences.images.length, brokenOrRestrictedLinks: unmappedLinks.length },
   pages,
   assets: assetUrls,
   missingAssets,
   knownPaths: [...knownPaths].sort(),
   brokenOrRestrictedLinks: unmappedLinks,
+  ownDomainReferences,
 };
 writeFileSync(path.join(outDir, 'index.json'), JSON.stringify(index, null, 2) + '\n');
 
 console.log(`Semantic baseline: ${pages.length} page(s), ${totals.lines} lines, ${totals.images} images, ${totals.links} links, ${totals.menuItems} menu items.`);
 console.log(`By type: ${JSON.stringify(byType)}`);
 console.log(`Discovered ${routes.length} listing/menu route(s) beyond the content list.`);
+if (ownDomains.size) console.log(`Hardcoded references to the site's own domain: ${ownDomainReferences.links.length} link target(s), ${ownDomainReferences.images.length} image source(s) (index.json \"ownDomainReferences\").`);
 console.log(`Internal links that are broken or restricted on the source: ${unmappedLinks.length} (index.json "brokenOrRestrictedLinks").`);
 if (skipped) console.log(`Skipped ${skipped} path(s) that did not return 200.`);
 console.log(`Wrote ${outDir}`);
