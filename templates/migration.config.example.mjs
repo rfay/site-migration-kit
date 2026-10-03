@@ -43,6 +43,17 @@ export default {
     }));
   },
 
+  // Pagination and other query strings worth following during route discovery (anything else with a
+  // query string is treated as dynamic), and paths to leave out entirely (comment permalinks).
+  discover: { exclude: [], queryParams: ['page'] },
+
+  // Hosts that ARE this site (its production domain, hardcoded into old content). Links to them are
+  // internal links: recorded as such in the baseline and made relative in an archive.
+  ownDomains: [],
+
+  // For a static copy: hosts it must never refer to, besides the source (e.g. the prepared copy that was crawled).
+  static: { forbiddenHosts: [] },
+
   // Optional: asset URLs (site-relative) so links to them count as "known" paths.
   async listAssets() {
     return [];

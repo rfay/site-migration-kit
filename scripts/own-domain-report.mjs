@@ -6,9 +6,9 @@
 //
 // These are links and images in the original's content that point at the production domain by
 // absolute URL (typically from an old editor). They are preserved as written, never rewritten. They
-// matter for a retirement: each one makes the archive depend on the original domain still being
-// served (an <img> from it means a broken picture the day that domain goes away), which is a
-// decision for a human, not a bug to fix mid-migration. Needs config.ownDomains at export time.
+// matter for a retirement: left alone, each one makes the archive depend on the original domain still
+// being served. config.ownDomains says they ARE this site, so the baseline treats them as internal links
+// and rewrite-static.mjs makes them relative. Needs config.ownDomains at export time.
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -30,10 +30,12 @@ console.log(`### Hardcoded references to the site's own domain (${own.domains.jo
 console.log('');
 console.log(`Generated from \`baseline/semantic/index.json\` (frozen ${idx.generatedAt}) by \`kit/scripts/own-domain-report.mjs\`.`);
 console.log(`${own.links.length} distinct link target(s) and ${own.images.length} distinct image source(s), on ${pages.size} page(s).`);
-console.log('Preserved exactly as written: they are explicit choices of the original, so the static self-containment');
-console.log('tier allows them. After a retirement each one depends on that domain still being served.');
+console.log('These are the site\'s own links: the production domain IS this site. The baseline records them as');
+console.log('internal links, the crawl fetches what they point at, and the rewrite step makes them relative, so');
+console.log('the archive no longer depends on that domain. Listed here because old content hardcoding a domain');
+console.log('is worth knowing about, and because each target is checked to exist in the archive.');
 console.log('');
-console.log(`**Images (${own.images.length}): the archive shows a broken picture here if the domain goes away.**`);
+console.log(`**Images (${own.images.length}): made relative; the images are fetched into the archive.**`);
 console.log('');
 own.images.forEach((r) => console.log(line(r)));
 console.log('');

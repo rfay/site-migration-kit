@@ -22,8 +22,13 @@ body) is checked. A page fails if it refers to:
    reference the original already had dead or restricted (a link to a page that 404s or answers 403 on the
    original): that must stay that way, because we reproduce the site rather than repair it.
 3. **An external URL the original page did not itself refer to.** A link out of the site is fine when the
-   original made it explicitly, such as a link to drupal.org, or a hardcoded link to its own production
-   domain. A new one, say a script from a CDN, means something non-static crept in.
+   original made it explicitly, such as a link to drupal.org. A new one, say a script from a CDN, means
+   something non-static crept in.
+4. **The site's own public domain** (`config.ownDomains`). Old content often hardcodes
+   `http://example.com/node/58` into links and images. That domain IS this site, so those are internal
+   links and an archive must reach them by relative URL: `/node/58`. Any absolute reference to an own
+   domain left in an archive fails. (A self-check against the original itself is exempt, because the
+   original legitimately contains them.)
 
 What "the original did explicitly" means is recorded, per page, when the baseline is frozen: every
 external URL the original page referred to anywhere (not just in its content region, since sidebar and
@@ -31,6 +36,26 @@ footer blocks make links too), and every internal reference that was already dea
 test compares the archive to that record, so it needs no live original at test time.
 
 A reviewed difference can be listed in `expected-differences.json` with `"kind": "static"`.
+
+## The site's own domain is this site
+
+`config.ownDomains` lists hosts that ARE the site (its production domain). Everything follows from
+treating them as internal:
+
+- **The baseline** records a link to `http://example.com/node/58` as the internal link `node/58`, so the
+  archive's relative `/node/58` satisfies it with no expected-differences entry, and discovery follows the
+  link (it found `taxonomy/term/26` and `taxonomy/term/27` this way).
+- **The crawl** fetches own-domain images and files from the copy being crawled, because a crawler will
+  not follow another host.
+- **The rewrite** treats the own domains like the crawled site: `http://example.com/node/58` becomes
+  `/node/58`, and a reference the original had dead stays dead (as a relative URL).
+- **A response that is not HTML is a file, not a page.** Discovery once captured a public-key file as a
+  "page" and the visible-text tier rightly found nothing to read. Files join the assets every target must
+  serve.
+- **The suite never requests the own domain.** It resolves own-domain references against the target's own
+  origin. A test run must not make requests to a production site.
+
+`scripts/own-domain-report.mjs` prints the list for a discoveries log.
 
 ## Making a crawl self-contained: `rewrite-static.mjs`
 
@@ -49,7 +74,7 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
 
 | Rule | Count | Why |
 |---|---|---|
-| comment permalinks become same-page anchors | 2,412 | the comment is on that page, so the link still lands on it |
+| comment permalinks become same-page anchors | 2,446 | the comment is on that page, so the link still lands on it |
 | login, profile, logout, search links: link removed, text kept | 1,838 | dynamic features a static site cannot have |
 | kept as the original had it (dead or restricted) | 79 | the original linked to `contact` (403), the missing files, and similar |
 | feed-discovery `<link>` tags removed | 47 | a feed is dynamic; mirroring a snapshot feed is the alternative |

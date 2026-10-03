@@ -108,6 +108,11 @@ What we learned, in the order it happened:
    external links that matter (drupal.org, hobobiker.com, the site's own production domain) mostly come from
    sidebar blocks, so the baseline now records every reference on each page.
 
+9. **A site's own domain is the site.** Old content hardcodes `http://example.com/...` into links and images.
+   Treated as external links they were preserved, which left the archive depending on that domain. Treated as
+   what they are (this site), they are recorded as internal links, their targets are fetched and discovered,
+   and the rewrite makes them relative. The change was a design correction, not a rewrite rule.
+
 Verified through the static project's own URL (not a stand-in server): 556 of 556, and the whole pipeline
 from a pristine restore in about 43 seconds. Four deliberate breaks made directly in the served files were
 each caught by the right tier: removed text (semantic and visible-text, line named), a deleted file (asset
