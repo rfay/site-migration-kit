@@ -4,7 +4,8 @@
 // frames, forms; head and body) is classified, and a page fails if it refers to:
 //
 //   1. the SOURCE site (or any host in config.static.forbiddenHosts, such as the prepared copy the
-//      crawl was taken from). The archive would depend on a site that is about to disappear.
+//      crawl was taken from), or the site's own public domain (config.ownDomains), which an archive
+//      must reach by a relative URL. The archive would depend on a site that is about to disappear.
 //   2. a dead internal URL: one on the target's own origin that does not resolve. Unless the
 //      original already had that reference dead or restricted (recorded in the baseline), in which
 //      case it must stay that way, because we reproduce the site rather than repair it.
@@ -27,6 +28,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
+import { hostKey, ownHostSet } from '../lib/extract.mjs';
 import { applyExpectedDifferences } from '../lib/compare.mjs';
 
 export function registerStaticSuite({ test, expect, config, root }) {
@@ -37,6 +39,8 @@ export function registerStaticSuite({ test, expect, config, root }) {
 
   const sourceHost = new URL(config.source.baseUrl).host;
   const forbidden = new Set([sourceHost, ...(config.static?.forbiddenHosts ?? [])]);
+  // Hosts that ARE this site (config.ownDomains). A link to one should be relative in an archive.
+  const ownHosts = ownHostSet(config.ownDomains ?? []);
 
   // Resolution results are shared by every test in a worker: stylesheets and scripts repeat on
   // every page, and each should be fetched once.
@@ -64,6 +68,11 @@ export function registerStaticSuite({ test, expect, config, root }) {
           if (seen.has(id)) continue;
           seen.add(id);
 
+          const ownLeak = ownHosts.has(hostKey(r.url.hostname)) && hostKey(r.url.hostname) !== hostKey(target.hostname);
+          if (ownLeak) {
+            diffs.push({ kind: 'static', item: `refers to the site's own public domain (should be relative), <${r.tag} ${r.attr}>: ${r.url.href}` });
+            continue;
+          }
           if (leakHosts.has(r.url.host)) {
             diffs.push({ kind: 'static', item: `refers to the source site, <${r.tag} ${r.attr}>: ${r.url.href}` });
             continue;

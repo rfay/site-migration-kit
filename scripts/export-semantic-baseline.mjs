@@ -17,7 +17,7 @@
 import { mkdirSync, writeFileSync, rmSync, readFileSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { extractSource, linkKey } from '../lib/extract.mjs';
+import { extractSource, linkKey, ownHostSet, hostKey } from '../lib/extract.mjs';
 import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
 
 const argv = process.argv.slice(2);
@@ -27,6 +27,10 @@ const config = (await import(pathToFileURL(path.join(root, 'migration.config.mjs
 
 const baseUrl = config.source.baseUrl.replace(/\/$/, '');
 const baseOrigin = new URL(baseUrl).origin;
+// config.ownDomains are hosts that ARE this site (its production domain, hardcoded into old content).
+// Links to them are internal links, so they are recorded as such and the pages they point at are
+// discovered like any other.
+const ownHosts = ownHostSet(config.ownDomains ?? []);
 // Write into a temporary directory and swap it in only when the whole export succeeded, so a
 // failed run can never destroy the committed baseline.
 const finalDir = path.join(root, 'baseline', 'semantic');
@@ -80,7 +84,7 @@ async function statusOf(key) {
 async function referencesOf(html, pageUrl) {
   const external = new Set();
   const internal = new Set();
-  for (const r of extractReferences(html, pageUrl, baseOrigin)) {
+  for (const r of extractReferences(html, pageUrl, baseOrigin, ownHosts)) {
     if (r.internal) internal.add(internalKey(r.url));
     else external.add(externalKey(r.url));
   }
@@ -111,7 +115,7 @@ for (const it of items) {
       continue;
     }
     const html = await res.text();
-    const rec = extractSource(html, { pageUrl, baseUrl, extract: config.extract });
+    const rec = extractSource(html, { pageUrl, baseUrl, extract: config.extract, ownDomains: config.ownDomains });
     rec.references = await referencesOf(html, pageUrl);
     if (!rec.contentFound) {
       console.warn(`  WARNING: ${p} (${it.id}): content selector matched nothing; recorded empty.`);
@@ -172,7 +176,7 @@ while (queue.length) {
     const res = await fetch(pageUrl, { redirect: 'follow' });
     const html = await res.text();
     const rec = extractSource(html, {
-      pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] },
+      pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] }, ownDomains: config.ownDomains,
     });
     rec.references = await referencesOf(html, pageUrl);
     const file = `pages/route__${safeName(key)}`;
@@ -209,7 +213,7 @@ const ownImages = new Map();
 if (ownDomains.size) {
   for (const p of pages) {
     const rec = JSON.parse(readFileSync(path.join(outDir, p.file), 'utf8'));
-    for (const l of rec.links) if (!l.internal && ownDomains.has(hostOf(l.key))) (ownLinks.get(l.key) ?? ownLinks.set(l.key, new Set()).get(l.key)).add(p.path);
+    for (const l of rec.links) if (l.own) (ownLinks.get(l.key) ?? ownLinks.set(l.key, new Set()).get(l.key)).add(p.path);
     for (const i of rec.images) if (i.src && ownDomains.has(hostOf(i.src))) (ownImages.get(i.src) ?? ownImages.set(i.src, new Set()).get(i.src)).add(p.path);
   }
 }
