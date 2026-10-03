@@ -63,7 +63,7 @@ export function registerStaticSuite({ test, expect, config, root }) {
         const leakHosts = new Set([...forbidden].filter((h) => h !== target.host));
 
         const seen = new Set();
-        for (const r of extractReferences(await res.text(), pageUrl, target.origin)) {
+        for (const r of extractReferences(await res.text(), pageUrl, target.origin, ownHosts)) {
           const id = `${r.url.href}`;
           if (seen.has(id)) continue;
           seen.add(id);
@@ -85,10 +85,13 @@ export function registerStaticSuite({ test, expect, config, root }) {
             }
             continue;
           }
-          let status = resolved.get(r.url.href);
+          // A reference to the site's own public domain is resolved against THIS target's origin, never against
+          // the domain itself: the suite must not make requests to a production site.
+          const href = r.own ? new URL(r.url.pathname + r.url.search, target.origin).href : r.url.href;
+          let status = resolved.get(href);
           if (status === undefined) {
-            status = (await request.get(r.url.href)).status();
-            resolved.set(r.url.href, status);
+            status = (await request.get(href)).status();
+            resolved.set(href, status);
           }
           if (status < 200 || status >= 400) {
             if (originalDead.has(internalKey(r.url))) continue; // dead on the original too: kept as it was
