@@ -17,8 +17,9 @@
 //      reference is reported as unresolved, and with --strict the script exits 1.
 //
 // Rules file: { "hosts": ["prep-host.ddev.site"], "rules": [
-//   { "name": "...", "match": "<regex on the site-relative path+query>", "action": "anchor"|"unwrap"|"relative",
+//   { "name": "...", "match": "<regex on the site-relative path+query>", "action": "anchor"|"unwrap"|"relative"|"remove",
 //     "anchor": "comment-$1" } ] }
+//   remove  deletes the element (for example a feed-discovery <link> in the head).
 //   anchor  points at #<anchor> on this page if it has that id, else on the mirrored page that does,
 //           else the link is unwrapped. $1.. are the regex's capture groups.
 //
@@ -112,6 +113,7 @@ for (const file of htmlFiles) {
         const m = key.match(rule.re);
         if (!m) continue;
         changed = true;
+        if (rule.action === 'remove') { $(el).remove(); bump(rule.name ?? 'remove'); return; }
         if (rule.action === 'unwrap' && canUnwrap) { unwrap(); bump(rule.name ?? 'unwrap'); return; }
         if (rule.action === 'relative') { $(el).attr(attr, rel); bump(rule.name ?? 'relative'); return; }
         if (rule.action === 'anchor' && canUnwrap) {
