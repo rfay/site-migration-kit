@@ -103,7 +103,7 @@ known-good state.
 
 | Lives in this kit | Lives in each site's repo |
 |---|---|
-| Prompt sequence (one file per stage) | A single `migration.config.*` |
+| Prompt sequence (one file per stage) | A single [`migration.config.*`](templates/migration.config.example.mjs) |
 | Plan and discoveries templates | The frozen, tagged baseline |
 | Extractor and test specs, all tiers | That site's `DISCOVERIES.md` |
 | One-command `verify` entry point | The expected-differences file |
@@ -124,7 +124,7 @@ kit, and it gets recorded.**
 | Stage prompts | `prompts/` | planned |
 | Plan and discoveries templates | `templates/` | planned |
 | Manifest generation from the source (current-revision joins, unpublished handling) | `scripts/` | prototyped on randyfay.com |
-| Semantic extraction baseline (platform-independent content, route, menu and asset check) | [`lib/`](lib/), [`tests/`](tests/), [docs](docs/semantic-tier.md) | working; verified on randyfay.com's development copy and a static mirror, with negative controls |
+| Semantic extraction baseline (platform-independent content, route, menu and asset check) | [`lib/extract.mjs`](lib/extract.mjs), [`lib/compare.mjs`](lib/compare.mjs), [`tests/semantic-suite.mjs`](tests/semantic-suite.mjs), [`scripts/export-semantic-baseline.mjs`](scripts/export-semantic-baseline.mjs), [docs](docs/semantic-tier.md) | working; verified on randyfay.com's development copy and a static mirror, with negative controls |
 | Asset integrity tier (SHA-256 of every file) | randyfay.com `test/playwright/tests/` | prototyped; the semantic tier also asserts every asset resolves |
 | Access tier (unpublished content must still return 403) | randyfay.com `test/playwright/tests/` | prototyped, not yet moved into the kit |
 | Path tier (every alias, listing route and asset resolves) | covered by the semantic tier | working; redirects not yet modeled |
@@ -140,7 +140,7 @@ kit, and it gets recorded.**
 | Subset runs by tag (`@smoke`, per content type, `@assets`) | Playwright `--grep` | prototyped on randyfay.com |
 | Second target for rehearsals: wget mirror and static server | [`scripts/`](scripts/) | working |
 | Vendor the kit into a site repo as plain files (no submodule) | [`scripts/vendor-into.sh`](scripts/vendor-into.sh) | working |
-| Restore, transform, crawl, verify pipeline | `scripts/` | planned |
+| Restore, prepare, crawl, rewrite, verify pipeline (one command) | the site repo's `retire/` (randyfay.com's is the worked example; see [retirement-approach.md](docs/retirement-approach.md)) | working there in about 50 seconds; not yet generalized into the kit |
 
 Tests run with Playwright under DDEV via
 [Lullabot/ddev-playwright](https://github.com/Lullabot/ddev-playwright).

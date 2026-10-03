@@ -74,10 +74,11 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
 
 | Rule | Count | Why |
 |---|---|---|
-| comment permalinks become same-page anchors | 2,446 | the comment is on that page, so the link still lands on it |
-| login, profile, logout, search links: link removed, text kept | 1,838 | dynamic features a static site cannot have |
-| kept as the original had it (dead or restricted) | 79 | the original linked to `contact` (403), the missing files, and similar |
-| feed-discovery `<link>` tags removed | 47 | a feed is dynamic; mirroring a snapshot feed is the alternative |
+| comment permalinks become anchors on the page that has the comment | 2,446 (2,428 on the same page, 18 on another page of the thread) | the comment is on that page, so the link still lands on it |
+| login, profile, logout, search links: link removed, text kept | 1,851 | dynamic features a static site cannot have |
+| kept as the original had it (dead or restricted), made relative | 100 | the original linked to `contact` (403), the missing files, and similar |
+| feed-discovery `<link>` tags removed | 49 |
+| own-domain links and images, and anything else whose target is in the copy: made relative | 262 | the production domain is this site | a feed is dynamic; mirroring a snapshot feed is the alternative |
 
 ## Related things the same rehearsal turned up
 
@@ -87,9 +88,8 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
   parameters named in `config.discover.queryParams` (here `['page']`) transitively, and a static server can
   serve them at the original URLs: see `templates/static-urls.nginx.conf`, which tries
   `$uri$is_args$args.html` first.
-- **Hardcoded references to the site's own domain** are recorded at export time (`config.ownDomains`) and can
-  be printed with `scripts/own-domain-report.mjs`. They are preserved, allowed by the tier above, and listed
-  for a human, because each one makes the archive depend on that domain being served.
+- **Hardcoded references to the site's own domain** are this site, not external links: see "The site's own
+  domain is this site" above. `scripts/own-domain-report.mjs` prints the list for a discoveries log.
 - **The baseline exporter now writes to a temporary directory and swaps it in only on success.** A failed
   export can no longer destroy the reference. (Found the hard way.)
 

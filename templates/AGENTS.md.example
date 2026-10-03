@@ -24,7 +24,7 @@ rehearse and run a migration. Nothing here is production.
 
 - **Production** (<production hostname(s)>): never connect to it, never write to it.
   The only permitted contact is a public, anonymous, read-only HTTP GET of a page, and only
-  when a task explicitly asks for a comparison against the live site.
+  when a task explicitly asks for a comparison against the production site.
 - **Never run** `ddev pull`, `ddev push`, `rsync`/`scp`/`ssh` to a remote host, or anything
   that would upload data. If one seems necessary, stop and ask the human. The human runs
   `ddev auth ssh` and `ddev pull` themselves; do not attempt interactive SSH

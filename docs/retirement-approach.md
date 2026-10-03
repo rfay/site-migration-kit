@@ -72,8 +72,8 @@ restore every time cannot drift into an unreproducible state.
 
 The pipeline exists as committed scripts in that site's repository (`retire/`): snapshot the pristine
 database from the original once, then `run.sh` restores the prep copy, prepares it, crawls it into the
-static project, rewrites it, and verifies. The whole run takes about 55 seconds and ends with **860 passing checks**
-(266 semantic, 264 visible-text, 40 access, 26 asset, 264 static self-containment).
+static project, rewrites it, and verifies. The whole run takes about 50 seconds and ends with **869 passing checks**
+(269 semantic, 267 visible-text, 40 access, 26 asset, 267 static self-containment).
 
 What we learned, in the order it happened:
 
@@ -113,8 +113,8 @@ What we learned, in the order it happened:
    what they are (this site), they are recorded as internal links, their targets are fetched and discovered,
    and the rewrite makes them relative. The change was a design correction, not a rewrite rule.
 
-Verified through the static project's own URL (not a stand-in server): 556 of 556, and the whole pipeline
-from a pristine restore in about 43 seconds. Four deliberate breaks made directly in the served files were
+Verified through the static project's own URL (not a stand-in server), and the whole pipeline from a pristine
+restore. Four deliberate breaks made directly in the served files were
 each caught by the right tier: removed text (semantic and visible-text, line named), a deleted file (asset
 tier and the "every asset resolves" test), a private page leaked into the archive (access: "expected 403,
 got 200"), and a CSS-hidden paragraph (visible-text only). A fresh crawl then restored a clean copy.
@@ -136,6 +136,13 @@ got 200"), and a CSS-hidden paragraph (visible-text only). A fresh crawl then re
 - **Preparation can be done with `bee` (or `drush`) and `jq`**, as scripts that print a count. `ddev bee
   eval` passes its arguments to the shell unquoted and mangles PHP; write the PHP to a file in the project
   and use `bee php-script` instead.
+
+### Operating notes
+
+- **All three projects must be running.** A stopped static project makes every test fail to connect, and the
+  run takes minutes to report hundreds of failures. `retire/run.sh` now checks first and fails in seconds
+  with the command to start the project.
+- **The mirror script hides nothing now:** a failed crawl prints its real error and stops the pipeline.
 
 ### Still to verify
 

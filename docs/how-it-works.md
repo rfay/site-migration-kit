@@ -73,7 +73,7 @@ whether the move was faithful.
 | `export-semantic-baseline.mjs` | Captures the reference from the old site | Once, before any migration |
 | `check-source-drift.mjs` | Re-reads the old site and says whether it still matches the reference. Exit code 1 if not | Before a migration starts, and any time the old site might have been edited |
 | Semantic tests (`semantic:`) | The main check: nothing is missing | Every run against a new site |
-| Visible-text tests (`visible:`) | Opens each page in a real browser and checks the text is actually visible. Slower, about 11 seconds for 244 pages | When pages use scripts or hiding, and before sign-off |
+| Visible-text tests (`visible:`) | Opens each page in a real browser and checks the text is actually visible. Slower, about 11 to 14 seconds for 267 pages | When pages use scripts or hiding, and before sign-off |
 | Static self-containment tests (`static:`) | Fail a page that refers to the old site, a dead internal URL, or an external URL the original did not have | Every run against a static copy |
 | `rewrite-static.mjs` | Rewrites every reference to the crawled site so the copy stands alone, with a count per decision | After the crawl, before the tests |
 | `own-domain-report.mjs` | Lists hardcoded links and images pointing at the site's own public domain | When writing up discoveries |

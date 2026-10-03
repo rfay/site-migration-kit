@@ -6,7 +6,7 @@ boundary is a git tag so a session that goes sideways can jump to a known-good s
 
 Cooking-show rule: do the interesting work live, and pre-bake anything slow behind a tag.
 
-Timings below come from the randyfay.com rehearsal (a 126-node Backdrop site) unless marked
+Timings below come from the randyfay.com rehearsal (a 126-node Backdrop site; 267 baseline pages) unless marked
 *unmeasured*. hobobiker.com is about ten times larger (1,296 nodes, 1,657 aliases), so scale the
 crawl-bound steps accordingly and pre-bake them.
 
@@ -29,7 +29,7 @@ good migration from a bad one. No migration happens in this session.
 | 0-10 | Frame the goal; write the plan in plan mode | The prompt and plan are the demo. Show the improved review prompt from MIGRATION_PREP.md. |
 | 10-20 | Read-only audit of the source | Inventory by type and status, render-time magic, hidden/invisible content, broken links. Log everything in `DISCOVERIES.md`; fix nothing. |
 | 20-40 | Build the tiers with Claude | Content listing from the database (current-revision join, unpublished included); semantic extractor; asset and access checks; screenshots informational only. |
-| 40-48 | Freeze the baseline, run the self-check | Export ~25 s for 244 pages here; self-check ~3 s. Tag the commit. |
+| 40-48 | Freeze the baseline, run the self-check | Export ~8 s for 267 pages here; the whole 875-test suite against the original ~17 s. Tag the commit. |
 | 48-56 | Negative controls | Break a copy on purpose (delete a paragraph, an image, a file); the suite must name each one. A run that passes against a second target on the first try is suspect. |
 | 56-60 | Show the kit layout and `DISCOVERIES.md`; questions | |
 
