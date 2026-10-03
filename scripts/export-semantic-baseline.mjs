@@ -14,7 +14,7 @@
 // Treat the committed, git-tagged output as read-only once a migration starts. Pipelines must
 // never regenerate it, or they quietly redefine "correct".
 
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { extractSource, linkKey } from '../lib/extract.mjs';
@@ -26,7 +26,10 @@ const config = (await import(pathToFileURL(path.join(root, 'migration.config.mjs
 
 const baseUrl = config.source.baseUrl.replace(/\/$/, '');
 const baseOrigin = new URL(baseUrl).origin;
-const outDir = path.join(root, 'baseline', 'semantic');
+// Write into a temporary directory and swap it in only when the whole export succeeded, so a
+// failed run can never destroy the committed baseline.
+const finalDir = path.join(root, 'baseline', 'semantic');
+const outDir = `${finalDir}.new`;
 const pagesDir = path.join(outDir, 'pages');
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(pagesDir, { recursive: true });
@@ -193,4 +196,6 @@ console.log(`Discovered ${routes.length} listing/menu route(s) beyond the conten
 if (ownDomains.size) console.log(`Hardcoded references to the site's own domain: ${ownDomainReferences.links.length} link target(s), ${ownDomainReferences.images.length} image source(s) (index.json \"ownDomainReferences\").`);
 console.log(`Internal links that are broken or restricted on the source: ${unmappedLinks.length} (index.json "brokenOrRestrictedLinks").`);
 if (skipped) console.log(`Skipped ${skipped} path(s) that did not return 200.`);
-console.log(`Wrote ${outDir}`);
+rmSync(finalDir, { recursive: true, force: true });
+renameSync(outDir, finalDir);
+console.log(`Wrote ${finalDir}`);
