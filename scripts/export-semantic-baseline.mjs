@@ -18,6 +18,7 @@ import { mkdirSync, writeFileSync, rmSync, readFileSync, renameSync } from 'node
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { extractSource, linkKey } from '../lib/extract.mjs';
+import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
 
 const argv = process.argv.slice(2);
 const rootArg = argv.indexOf('--root');
@@ -58,6 +59,40 @@ const knownPaths = new Set();
 for (const it of items) for (const p of it.paths) knownPaths.add(keyOf(p));
 for (const u of assetUrls) knownPaths.add(keyOf(decodeURIComponent(u)));
 
+
+// What did the ORIGINAL explicitly refer to, anywhere on the page (not just the content region)?
+// Recorded per page so a static target can be held to it: it may link outside the site only where
+// the original did, and an internal reference may be dead only where it was already dead or
+// restricted on the original. Statuses are looked up once per distinct reference.
+const statusMemo = new Map();
+async function statusOf(key) {
+  if (!statusMemo.has(key)) {
+    let st;
+    try {
+      st = (await fetch(`${baseOrigin}/${key}`, { redirect: 'manual' })).status;
+    } catch {
+      st = 'error';
+    }
+    statusMemo.set(key, st);
+  }
+  return statusMemo.get(key);
+}
+async function referencesOf(html, pageUrl) {
+  const external = new Set();
+  const internal = new Set();
+  for (const r of extractReferences(html, pageUrl, baseOrigin)) {
+    if (r.internal) internal.add(internalKey(r.url));
+    else external.add(externalKey(r.url));
+  }
+  const internalNonOk = [];
+  for (const key of internal) {
+    const st = await statusOf(key);
+    if (!(st >= 200 && st < 400)) internalNonOk.push({ key, status: st });
+  }
+  internalNonOk.sort((a, b) => a.key.localeCompare(b.key));
+  return { external: [...external].sort(), internalNonOk };
+}
+
 const pages = [];
 const internalLinkUses = new Map();
 const menuKeys = new Set();
@@ -75,7 +110,9 @@ for (const it of items) {
       skipped++;
       continue;
     }
-    const rec = extractSource(await res.text(), { pageUrl, baseUrl, extract: config.extract });
+    const html = await res.text();
+    const rec = extractSource(html, { pageUrl, baseUrl, extract: config.extract });
+    rec.references = await referencesOf(html, pageUrl);
     if (!rec.contentFound) {
       console.warn(`  WARNING: ${p} (${it.id}): content selector matched nothing; recorded empty.`);
     }
@@ -133,9 +170,11 @@ while (queue.length) {
   if (status === 200 && !skip) {
     const pageUrl = `${baseUrl}/${key}`;
     const res = await fetch(pageUrl, { redirect: 'follow' });
-    const rec = extractSource(await res.text(), {
+    const html = await res.text();
+    const rec = extractSource(html, {
       pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] },
     });
+    rec.references = await referencesOf(html, pageUrl);
     const file = `pages/route__${safeName(key)}`;
     writeFileSync(path.join(outDir, file), JSON.stringify(rec, null, 2) + '\n');
     pages.push({ path: key, id: `route:${key}`, type: 'route', title: rec.primaryHeading, tags: ['route'], file });
