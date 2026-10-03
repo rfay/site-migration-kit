@@ -72,8 +72,8 @@ restore every time cannot drift into an unreproducible state.
 
 The pipeline exists as committed scripts in that site's repository (`retire/`): snapshot the pristine
 database from the original once, then `run.sh` restores the prep copy, prepares it, crawls it into the
-static project, rewrites it, and verifies. The whole run takes about 50 seconds and ends with **869 passing checks**
-(269 semantic, 267 visible-text, 40 access, 26 asset, 267 static self-containment).
+static project, rewrites it, and verifies. The whole run takes about 50 seconds and ends with **1,136 passing checks**
+(269 semantic, 267 visible-text, 267 layout, 40 access, 26 asset, 267 static self-containment).
 
 What we learned, in the order it happened:
 

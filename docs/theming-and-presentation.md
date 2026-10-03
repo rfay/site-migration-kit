@@ -13,6 +13,12 @@ site and letting the failure categories drive the templates was the whole method
 theme printed the original's date format, the dates had to match exactly and the mistake showed. Prefer fixing
 wording to allowing it.
 
+## Looks are measured, not diffed
+
+The [layout tier](layout-tier.md) records where things are on the original (content column, sidebar and its side, header
+color, fonts, text and link colors) and checks the target within wide tolerances. It catches a missing sidebar or a
+column pushed aside, which no word-level check can see.
+
 ## Measure first
 
 Remove every theme-related entry from `expected-differences.json` for a target, run the semantic tier, and count the
