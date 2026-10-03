@@ -161,6 +161,7 @@ const queue = [...new Set([...internalLinkUses.keys(), ...[...menuKeys].filter((
 const queued = new Set(queue);
 const unmappedLinks = [];
 const routes = [];
+const discoveredFiles = [];
 while (queue.length) {
   const key = queue.shift();
   const uses = internalLinkUses.get(key) ?? { count: 0, from: [] };
@@ -174,6 +175,14 @@ while (queue.length) {
   if (status === 200 && !skip) {
     const pageUrl = `${baseUrl}/${key}`;
     const res = await fetch(pageUrl, { redirect: 'follow' });
+    // Only HTML is a page. Anything else that answers 200 (a PDF, a patch, a key file) is a file: it
+    // joins the assets every target must be able to serve, and is never read as page content.
+    if (!/html/i.test(res.headers.get('content-type') ?? '')) {
+      assetUrls.push(`/${key}`);
+      knownPaths.add(key);
+      discoveredFiles.push(`/${key}`);
+      continue;
+    }
     const html = await res.text();
     const rec = extractSource(html, {
       pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] }, ownDomains: config.ownDomains,
@@ -223,7 +232,7 @@ const ownDomainReferences = { domains: [...ownDomains], links: listOf(ownLinks),
 const index = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  counts: { pages: pages.length, skipped, assets: assetUrls.length, missingAssets: missingAssets.length, byType, ...totals, discoveredRoutes: routes.length, ownDomainLinks: ownDomainReferences.links.length, ownDomainImages: ownDomainReferences.images.length, brokenOrRestrictedLinks: unmappedLinks.length },
+  counts: { pages: pages.length, skipped, assets: assetUrls.length, missingAssets: missingAssets.length, byType, ...totals, discoveredRoutes: routes.length, discoveredFiles: discoveredFiles.length, ownDomainLinks: ownDomainReferences.links.length, ownDomainImages: ownDomainReferences.images.length, brokenOrRestrictedLinks: unmappedLinks.length },
   pages,
   assets: assetUrls,
   missingAssets,
