@@ -14,6 +14,15 @@ changes markup, class names, asset URLs and scripts on every page, so every test
 the content is perfect. The question worth asking is not "is the markup the same" but "does a
 visitor still see everything they used to".
 
+## A lesson: a content selector alone misses the sidebar
+
+The first baseline recorded only the main content region. A Drupal 11 rebuild passed every check while missing the
+original's whole sidebar ("Where to find me", a recent-content list with its own title, the book tree), because none of
+it was inside the main region. Someone looking at a screenshot saw it at once. The fix is `extract.regions` in the
+config, for example `regions: { sidebar: '.l-sidebar', header: '.l-header', footer: '.l-footer' }`: each region's lines
+and links are recorded per page and checked like content. **Whenever you write the selectors, also list every region
+the visitor sees, and look at a screenshot of a few page types next to the target.**
+
 ## How it works
 
 Two sides, deliberately asymmetric (see [`lib/extract.mjs`](../lib/extract.mjs)):
@@ -37,6 +46,7 @@ lacks**. Per page:
 | images | every baseline image file name is present, and internal ones actually load |
 | links | every baseline link is present (internal ones compared as normalized paths, so `/a/b`, `/a/b/`, `/a/b.html` and `/a/b/index.html` are one page; external ones exactly) |
 | menu | every baseline menu item is present, same path and text |
+| region | every line and link recorded from a region outside the main content (sidebar blocks, header, footer) is still on the page |
 
 Plus two suite-level checks: the baseline covers every published path in the site's own content
 listing, and **every baseline asset resolves** on the target.

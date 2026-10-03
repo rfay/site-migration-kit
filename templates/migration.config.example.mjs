@@ -25,6 +25,9 @@ export default {
     ignore: [],
     // Named navigation blocks; every link in them is recorded and later required on the target.
     menus: { breadcrumb: 'nav.breadcrumb' },
+    // Everything the visitor sees OUTSIDE the main content: sidebar blocks, header, footer. List them all, or a
+    // rebuild can lose a whole sidebar and every check still passes. Each region's lines and links are recorded.
+    regions: { sidebar: '.sidebar', header: 'header', footer: 'footer' },
   },
 
   // How to list the site's content. Return one item per node/page:
