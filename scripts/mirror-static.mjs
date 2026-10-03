@@ -27,10 +27,13 @@ const base = (get('--from', null) ?? index.baseUrl).replace(/\/$/, '');
 // recorded in the baseline). A crawler will not follow another host, but these ARE this site, so they
 // are fetched from the copy being crawled and saved at the same path, ready to be linked relatively.
 const own = index.ownDomainReferences ?? { links: [], images: [] };
-const ownFiles = [...own.images, ...own.links.filter((l) => /\.[A-Za-z0-9]{2,5}$/.test(new URL(l.url).pathname))].map((r) => {
-  const u = new URL(r.url);
-  return `${base}${u.pathname}${u.search}`;
-});
+const ownFiles = [];
+for (const r of [...own.images, ...own.links]) {
+  let u;
+  try { u = new URL(r.url); } catch { continue; }
+  // Images always; links only when they point at a file (a PDF, a patch), not at a page.
+  if (own.images.includes(r) || /\.[A-Za-z0-9]{2,5}$/.test(u.pathname)) ownFiles.push(`${base}${u.pathname}${u.search}`);
+}
 const urls = [...new Set([
   ...index.pages.map((p) => `${base}/${p.path.replace(/^\/+/, '')}`),
   // Linked files (PDFs and the like) are not "page requisites", so wget would skip them.

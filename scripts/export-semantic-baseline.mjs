@@ -213,7 +213,7 @@ const ownImages = new Map();
 if (ownDomains.size) {
   for (const p of pages) {
     const rec = JSON.parse(readFileSync(path.join(outDir, p.file), 'utf8'));
-    for (const l of rec.links) if (l.own) (ownLinks.get(l.key) ?? ownLinks.set(l.key, new Set()).get(l.key)).add(p.path);
+    for (const l of rec.links) if (l.own) (ownLinks.get(l.url) ?? ownLinks.set(l.url, new Set()).get(l.url)).add(p.path);
     for (const i of rec.images) if (i.src && ownDomains.has(hostOf(i.src))) (ownImages.get(i.src) ?? ownImages.set(i.src, new Set()).get(i.src)).add(p.path);
   }
 }
