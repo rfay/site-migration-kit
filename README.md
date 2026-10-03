@@ -141,6 +141,7 @@ kit, and it gets recorded.**
 | Second target for rehearsals: wget mirror and static server | [`scripts/`](scripts/) | working |
 | Vendor the kit into a site repo as plain files (no submodule) | [`scripts/vendor-into.sh`](scripts/vendor-into.sh) | working |
 | System prep: the four sibling projects, ready before the session | [docs/system-prep.md](docs/system-prep.md) | written; not yet run for hobobiker |
+| Theming: what a theme does and does not give you, and how to measure it | [docs/theming-and-presentation.md](docs/theming-and-presentation.md) | measured on randyfay.com |
 | Getting content into the new Drupal site: Migrate API or a rerunnable script | [docs/rebuild-approaches.md](docs/rebuild-approaches.md) | both are valid; randyfay.com uses a script, hobobiker may suit the Migrate API |
 | Restore, prepare, crawl, rewrite, verify pipeline (one command) | the site repo's `retire/` (randyfay.com's is the worked example; see [retirement-approach.md](docs/retirement-approach.md)) | working there in about 50 seconds; not yet generalized into the kit |
 
