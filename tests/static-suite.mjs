@@ -68,7 +68,9 @@ export function registerStaticSuite({ test, expect, config, root }) {
           if (seen.has(id)) continue;
           seen.add(id);
 
-          const ownLeak = ownHosts.has(hostKey(r.url.hostname)) && hostKey(r.url.hostname) !== hostKey(target.hostname);
+          // The original itself legitimately contains absolute links to its own domain, so this only applies
+          // to a target that is not the source.
+          const ownLeak = target.host !== sourceHost && ownHosts.has(hostKey(r.url.hostname)) && hostKey(r.url.hostname) !== hostKey(target.hostname);
           if (ownLeak) {
             diffs.push({ kind: 'static', item: `refers to the site's own public domain (should be relative), <${r.tag} ${r.attr}>: ${r.url.href}` });
             continue;

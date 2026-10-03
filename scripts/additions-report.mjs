@@ -47,7 +47,7 @@ for (const p of index.pages) {
     pages.push({ page: p, status: res.status, lines: [] });
     continue;
   }
-  const rec = extractTarget(await res.text(), { pageUrl: url, baseUrl: target });
+  const rec = extractTarget(await res.text(), { pageUrl: url, baseUrl: target, ownDomains: config.ownDomains });
   pages.push({ page: p, status: 200, lines: [...new Set(rec.lines)] });
 }
 
