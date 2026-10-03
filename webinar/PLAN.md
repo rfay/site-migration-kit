@@ -56,6 +56,11 @@ Pre-bake: the full crawl and any derivative/thumbnail generation. Tag: `s2-stati
 
 Goal: the same suite, now against a working Drupal 11 site.
 
+The target is a sibling DDEV project on the same workspace (randyfay.com's rehearsal uses `randyfay-d11`; not built
+yet). Run the suite with `MIGRATION_TARGET=drupal11`: the decisions recorded for the static target do not apply, so
+private pages must still answer 403 and the semantic, visible-text, access and asset tiers judge the result. The
+`static:` tier is for archives only. A workspace restart stops every DDEV project, so start each one first.
+
 | Min | What | Notes |
 |---|---|---|
 | 0-15 | Onboard Claude like a new engineer | Explore the D6 source, learn D11, write the migration plan. The plan quality is the demo. |
