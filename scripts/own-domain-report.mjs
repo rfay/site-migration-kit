@@ -23,7 +23,8 @@ if (!own || !own.domains?.length) {
   process.exit(1);
 }
 const pages = new Set([...own.links, ...own.images].flatMap((r) => r.pages));
-const line = (r) => `- \`${r.url}\` (${r.pages.length} page${r.pages.length === 1 ? '' : 's'}: ${r.pages.slice(0, 3).join(', ')}${r.pages.length > 3 ? ', ...' : ''})`;
+const name = (p) => (p === '' ? '(home)' : p);
+const line = (r) => `- \`${r.url}\` (${r.pages.length} page${r.pages.length === 1 ? '' : 's'}: ${r.pages.slice(0, 3).map(name).join(', ')}${r.pages.length > 3 ? ', ...' : ''})`;
 
 console.log(`### Hardcoded references to the site's own domain (${own.domains.join(', ')})`);
 console.log('');
