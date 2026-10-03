@@ -64,6 +64,7 @@ whether the move was faithful.
 | New text added (including leaked template codes) | Not a failure; shown in a report | additions report |
 | The original site itself changed since the capture | Yes | source-drift check |
 | Content outside the main content area (sidebars, footers) | No: not captured | by design |
+| The copy links back to the old site, or to something not static | Yes | the static self-containment tests |
 
 ## The tools
 
@@ -73,6 +74,9 @@ whether the move was faithful.
 | `check-source-drift.mjs` | Re-reads the old site and says whether it still matches the reference. Exit code 1 if not | Before a migration starts, and any time the old site might have been edited |
 | Semantic tests (`semantic:`) | The main check: nothing is missing | Every run against a new site |
 | Visible-text tests (`visible:`) | Opens each page in a real browser and checks the text is actually visible. Slower, about 11 seconds for 244 pages | When pages use scripts or hiding, and before sign-off |
+| Static self-containment tests (`static:`) | Fail a page that refers to the old site, a dead internal URL, or an external URL the original did not have | Every run against a static copy |
+| `rewrite-static.mjs` | Rewrites every reference to the crawled site so the copy stands alone, with a count per decision | After the crawl, before the tests |
+| `own-domain-report.mjs` | Lists hardcoded links and images pointing at the site's own public domain | When writing up discoveries |
 | `additions-report.mjs` | Lists what the new site shows that the reference never had | After a run passes, to read for leftovers |
 | `mirror-static.mjs`, `serve-static.mjs --run` | Makes a throwaway static copy and runs tests against it, then shuts down | Rehearsing, or checking a static export |
 | `vendor-into.sh` | Copies a version of this kit into a site's repository as plain files | Setting up a site |

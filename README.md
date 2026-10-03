@@ -132,6 +132,9 @@ kit, and it gets recorded.**
 | In-browser visible-text check (hidden text, script-built content) | [`tests/visible-suite.mjs`](tests/visible-suite.mjs) | working; verified with a hidden-paragraph negative control |
 | Additions report (what the target shows that the baseline never had) | [`scripts/additions-report.mjs`](scripts/additions-report.mjs) | working; subtracts the source's own chrome; verified with a leaked-macro control |
 | Source-drift check (has the original changed since the freeze?) | [`scripts/check-source-drift.mjs`](scripts/check-source-drift.mjs) | working; verified on a tampered baseline copy |
+| Static self-containment tier (no links to the old site, dead URLs, or non-static externals) | [`tests/static-suite.mjs`](tests/static-suite.mjs), [docs](docs/static-self-containment.md) | working; verified with injected leaks and a positive control |
+| Make a crawl self-contained (rewrite references to the crawled site) | [`scripts/rewrite-static.mjs`](scripts/rewrite-static.mjs) | working |
+| Own-domain reference report (for DISCOVERIES.md) | [`scripts/own-domain-report.mjs`](scripts/own-domain-report.mjs) | working |
 | Strict options: line order and image alt text | `config.strict` in `migration.config.mjs` | working; off by default |
 | Expected-differences allowlist | [`templates/`](templates/expected-differences.example.json), `lib/compare.mjs` | working |
 | Subset runs by tag (`@smoke`, per content type, `@assets`) | Playwright `--grep` | prototyped on randyfay.com |

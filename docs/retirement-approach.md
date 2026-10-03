@@ -72,8 +72,8 @@ restore every time cannot drift into an unreproducible state.
 
 The pipeline exists as committed scripts in that site's repository (`retire/`): snapshot the pristine
 database from the original once, then `run.sh` restores the prep copy, prepares it, crawls it into the
-static project and verifies. The whole run takes about 45 seconds and ends with **556 passing checks**
-(246 semantic, 244 visible-text, 40 access, 26 asset).
+static project, rewrites it, and verifies. The whole run takes about 55 seconds and ends with **860 passing checks**
+(266 semantic, 264 visible-text, 40 access, 26 asset, 264 static self-containment).
 
 What we learned, in the order it happened:
 
@@ -95,6 +95,18 @@ What we learned, in the order it happened:
    page that *leaks* into the archive still fails ("expected 403, got 200").
 5. **Entries should be as narrow as their reason.** `equals` matches a whole line and `kind` can be a
    list, so the "Search" decision cannot quietly hide a different line or a different kind of difference.
+
+6. **The crawl was not self-contained, and the content checks could not see it.** 4,084 references on 242 of
+   244 pages still pointed at the crawled site (comment permalinks, login links, feeds). A new tier now fails
+   any page that refers to the source site, a dead internal URL, or an external URL the original did not
+   itself have, and a rewrite step makes the crawl self-contained. See
+   [static-self-containment.md](static-self-containment.md).
+7. **Paginated pages were missing from both the archive and the baseline.** The first baseline skipped every
+   link with a query string, so `blog?page=1` and the second page of long comment threads were never
+   captured. They are now discovered transitively and served at their original URLs.
+8. **"Unless the original did explicitly" needs the original's whole page, not just its content.** The
+   external links that matter (drupal.org, hobobiker.com, the site's own production domain) mostly come from
+   sidebar blocks, so the baseline now records every reference on each page.
 
 Verified through the static project's own URL (not a stand-in server): 556 of 556, and the whole pipeline
 from a pristine restore in about 43 seconds. Four deliberate breaks made directly in the served files were

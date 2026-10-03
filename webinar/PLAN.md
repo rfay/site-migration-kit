@@ -46,6 +46,7 @@ project next to the original, on the same Coder workspace, so both can be compar
 |---|---|---|
 | 0-10 | Pipeline shape and plan; the sibling project | restore pristine dump -> transform -> crawl/export -> verify, one command. Credit Karen Stevenson's series up front. Before the session, settle the open questions in `docs/retirement-approach.md` (extensionless URLs, reaching one DDEV project from another, the Coder project-name list). |
 | 10-35 | Run it; iterate on failures | The first failures are usually gaps in the baseline or the export, not in the content (rehearsal: 243 menu failures were breadcrumb routes nobody had captured). Fix the right thing and say which it was. |
+| 35-50 | Deliberate changes; the crawl is not self-contained until you make it so | Show the leak: thousands of references still point at the crawled site and every content check still passes. Then the `static:` tier, the rewrite step and its rules. |
 | 35-50 | Deliberate changes | Anything chosen (drop comments, delete empty nodes, rewrite dead embeds) goes in `expected-differences.json` with a reason. |
 | 50-60 | Green run and review | Review every allowlisted difference. Re-run from a clean restore to show repeatability. |
 
