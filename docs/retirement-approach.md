@@ -95,6 +95,8 @@ What we learned, in the order it happened:
    page that *leaks* into the archive still fails ("expected 403, got 200").
 5. **Entries should be as narrow as their reason.** `equals` matches a whole line and `kind` can be a
    list, so the "Search" decision cannot quietly hide a different line or a different kind of difference.
+   For a family of lines that differ only in their data (a date in another format) use `regex`, anchored with
+   `^` and `$`.
 
 6. **The crawl was not self-contained, and the content checks could not see it.** 4,084 references on 242 of
    244 pages still pointed at the crawled site (comment permalinks, login links, feeds). A new tier now fails

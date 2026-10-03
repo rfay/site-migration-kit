@@ -140,6 +140,8 @@ kit, and it gets recorded.**
 | Subset runs by tag (`@smoke`, per content type, `@assets`) | Playwright `--grep` | prototyped on randyfay.com |
 | Second target for rehearsals: wget mirror and static server | [`scripts/`](scripts/) | working |
 | Vendor the kit into a site repo as plain files (no submodule) | [`scripts/vendor-into.sh`](scripts/vendor-into.sh) | working |
+| System prep: the four sibling projects, ready before the session | [docs/system-prep.md](docs/system-prep.md) | written; not yet run for hobobiker |
+| Getting content into the new Drupal site: Migrate API or a rerunnable script | [docs/rebuild-approaches.md](docs/rebuild-approaches.md) | both are valid; randyfay.com uses a script, hobobiker may suit the Migrate API |
 | Restore, prepare, crawl, rewrite, verify pipeline (one command) | the site repo's `retire/` (randyfay.com's is the worked example; see [retirement-approach.md](docs/retirement-approach.md)) | working there in about 50 seconds; not yet generalized into the kit |
 
 Tests run with Playwright under DDEV via

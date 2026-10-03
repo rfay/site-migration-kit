@@ -12,6 +12,9 @@ crawl-bound steps accordingly and pre-bake them.
 
 ## Before any session
 
+- **System prep:** all four hobobiker projects (`hobobiker`, `-prep`, `-static`, `-d11`) set up, listed in the
+  workspace's "DDEV project names", `ddev coder setup` done, and running:
+  [docs/system-prep.md](../docs/system-prep.md).
 - A disposable, restorable copy that works (restore tested, not assumed). Tell the agent so in
   `AGENTS.md`, and put the classifier settings in your user settings:
   [docs/safe-demo-environment.md](../docs/safe-demo-environment.md).
