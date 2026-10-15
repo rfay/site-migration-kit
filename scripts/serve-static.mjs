@@ -7,8 +7,9 @@
 // and this script exits with the command's exit code. Nothing is left running. Without --run it
 // serves until you stop it.
 //
-// Resolves /a/b to a/b, a/b.html, then a/b/index.html, like a typical static host. Anything
-// else is a 404. Deliberately dumb: no rewrites, no CMS behavior.
+// Resolves /a/b?q to a/b?q.html (a page a crawler saved under its query string, such as
+// blog?page=1.html), then a/b, a/b.html, a/b/index.html, like templates/static-urls.nginx.conf.
+// Anything else is a 404. Deliberately dumb: no rewrites, no CMS behavior.
 
 import http from 'node:http';
 import { spawn } from 'node:child_process';
@@ -35,9 +36,14 @@ function isFile(p) {
 const server = http
   .createServer((req, res) => {
     let rel;
-    try { rel = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { rel = '/'; }
+    let search = '';
+    try {
+      const u = new URL(req.url, 'http://x');
+      rel = decodeURIComponent(u.pathname);
+      search = decodeURIComponent(u.search);
+    } catch { rel = '/'; }
     const clean = path.normalize(rel).replace(/^(\.\.[/\\])+/, '').replace(/^\/+/, '');
-    const candidates = [clean, `${clean}.html`, path.join(clean, 'index.html')];
+    const candidates = [...(search ? [`${clean}${search}.html`] : []), clean, `${clean}.html`, path.join(clean, 'index.html')];
     const file = candidates.map((c) => path.join(dir, c)).find((c) => c.startsWith(dir) && isFile(c));
     if (!file) {
       res.writeHead(404, { 'content-type': 'text/plain' });

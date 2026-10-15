@@ -47,8 +47,10 @@ export default {
   },
 
   // Pagination and other query strings worth following during route discovery (anything else with a
-  // query string is treated as dynamic), and paths to leave out entirely (comment permalinks).
-  discover: { exclude: [], queryParams: ['page'] },
+  // query string is treated as dynamic), paths to leave out entirely (comment permalinks), and
+  // noFollow: links not followed FROM matching pages, to bound a generated link space at one hop
+  // (e.g. [{ from: '^calendar/', links: '^calendar/' }]). See docs/semantic-tier.md.
+  discover: { exclude: [], queryParams: ['page'], noFollow: [] },
 
   // Hosts that ARE this site (its production domain, hardcoded into old content). Links to them are
   // internal links: recorded as such in the baseline and made relative in an archive.
@@ -61,6 +63,10 @@ export default {
   async listAssets() {
     return [];
   },
+
+  // Stored-content tier (docs/stored-tier.md): which MIGRATION_TARGET values must keep everything the
+  // source DATABASE held, rendered or not. Other targets only get a report.
+  stored: { enforceFor: ['drupal11'] },
 
   // Reviewed, deliberate differences. See expected-differences.example.json.
   expectedDifferences: 'expected-differences.json',

@@ -25,6 +25,20 @@ For each of the four projects:
 
 A workspace restart stops every DDEV project. Start all four again afterwards (`ddev start` in each directory).
 
+## Browser tiers on a larger site: shared memory
+
+Docker gives a container 64 MB of `/dev/shm`. With that, Chromium crashes its tab ("Page crashed")
+after about 2,000 page loads; hobobiker.com's 2,345-page layout baseline hit it, randyfay.com's 267
+pages never did. The layout exporter now launches Chromium with `--disable-dev-shm-usage`. For the
+test runs as well, give the web container more shared memory with `.ddev/docker-compose.shm.yaml`:
+
+```yaml
+#ddev-silent-no-warn
+services:
+  web:
+    shm_size: 1gb
+```
+
 ## Check list (all true before going live)
 
 - [ ] All four projects appear in `ddev list` as running.

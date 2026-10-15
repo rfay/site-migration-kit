@@ -68,7 +68,8 @@ Inspect what the classifier actually sees with `claude auto-mode config`.
 [`templates/hooks/deny-production.sh`](../templates/hooks/deny-production.sh) is a
 `PreToolUse` hook that blocks any shell command matching a regex in
 `.agent-protected-patterns` at the project root (for example the production hostname, and
-`ddev (pull|push)`). Register it in the project's `.claude/settings.json`:
+`ddev (pull|push)`). Register it in the project's **`.claude/settings.local.json`**, not
+`.claude/settings.json`:
 
 ```json
 {
@@ -89,6 +90,19 @@ It is a tripwire, not a wall: text matching can be evaded. It earns its place be
 loudly and deterministically even after context compaction. Hooks can tighten decisions but
 cannot loosen a deny rule.
 
+**Keep the tripwire out of the site's git history.** Its rules suit the disposable copy, not the
+repository. On hobobiker.com it blocks `git push` and any fetch of the production domain, which would
+also stop a future session on a real checkout from legitimately pushing or checking the live site.
+`settings.local.json` is personal and uncommitted by Claude Code convention. The hook script and
+`.agent-protected-patterns` can sit beside it uncommitted, or be committed and do nothing until
+someone registers them locally.
+
+**Test the hook with a script file, not inline.** Once registered, it blocks any command containing
+the strings it tests for, including the test itself, and an agent's own edits whose text mentions
+them (on hobobiker.com it blocked a docs edit that contained the words "git push"). Edit files with the
+editor tool rather than shell heredocs. hobobiker.com's self-test is
+`.claude/hooks/test-deny-production.sh`, with 16 cases.
+
 ## Fallback for a live demo
 
 `claude --dangerously-skip-permissions` (equivalently `--permission-mode bypassPermissions`)
@@ -108,5 +122,5 @@ run sheet. A classifier surprise during the recording is a rehearsal failure, no
 |---|---|---|
 | Template `AGENTS.md`, settings, hook, this doc | kit | Generic and reusable |
 | Filled-in `AGENTS.md` | each site repo | Facts about that checkout |
-| `.agent-protected-patterns` | each site repo | That site's hostnames |
+| `.agent-protected-patterns` and the hook registration | each site checkout; registered in `.claude/settings.local.json` (uncommitted) | That site's hostnames; rules for the disposable copy, not the repository |
 | `autoMode` and permission rules | each person's `~/.claude/settings.json` | Only honored there; cannot be shipped by a repo |

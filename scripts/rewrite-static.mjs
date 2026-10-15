@@ -16,7 +16,8 @@
 //   4. Otherwise a link is "unwrapped" (the element goes, its text stays). Any other kind of
 //      reference is reported as unresolved, and with --strict the script exits 1.
 //
-// Rules file: { "hosts": ["prep-host.ddev.site"], "rules": [
+// Rules file: { "hosts": ["prep-host.ddev.site"], "rules": [   (the baseline's host and the site's own
+//   domains from config.ownDomains are always included; list the crawled copy's host here)
 //   { "name": "...", "match": "<regex on the site-relative path+query>", "action": "anchor"|"unwrap"|"relative"|"remove",
 //     "anchor": "comment-$1" } ] }
 //   remove  deletes the element (for example a feed-discovery <link> in the head).
@@ -41,11 +42,21 @@ if (!get('--dir', null) || !rulesFile) {
   process.exit(2);
 }
 const config = JSON.parse(readFileSync(rulesFile, 'utf8'));
-const hosts = new Set(config.hosts ?? []);
 const rules = (config.rules ?? []).map((r) => ({ ...r, re: new RegExp(r.match) }));
 
 // What the original explicitly had dead or restricted, anywhere on any page.
 const index = JSON.parse(readFileSync(path.join(root, 'baseline/semantic/index.json'), 'utf8'));
+
+// Hosts whose references are rewritten: the rules file's hosts (the copy that was crawled), plus,
+// always, the host the baseline was captured from and the site's own public domains (with and
+// without www). Without these defaults an empty rules file rewrote nothing and said so only as "0".
+const hosts = new Set(config.hosts ?? []);
+hosts.add(new URL(index.baseUrl).host);
+for (const d of index.ownDomainReferences?.domains ?? []) {
+  hosts.add(d);
+  hosts.add(`www.${d}`);
+}
+console.log(`rewrite-static: rewriting references to ${[...hosts].sort().join(', ')}`);
 const originalDead = new Set();
 for (const p of index.pages) {
   const rec = JSON.parse(readFileSync(path.join(root, 'baseline/semantic', p.file), 'utf8'));

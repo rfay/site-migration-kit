@@ -70,6 +70,11 @@ deterministically, and prints a count per decision, so a change in the numbers s
 4. Otherwise a link is unwrapped, and any other kind of reference is reported as unresolved (`--strict`
    makes that a failure).
 
+Which hosts count as "the crawled site": the rules file's `hosts` (list the prepared copy that was
+crawled), plus, always, the host the baseline was captured from and the site's own domains, with and
+without `www.`. The script prints the list. Before that default, a rules file with no hosts rewrote
+nothing and reported only "0 of 2345 page(s) changed".
+
 The rules are decisions, and each is worth a sentence in the site's notes. randyfay.com's:
 
 | Rule | Count | Why |

@@ -127,6 +127,7 @@ kit, and it gets recorded.**
 | Semantic extraction baseline (platform-independent content, route, menu and asset check) | [`lib/extract.mjs`](lib/extract.mjs), [`lib/compare.mjs`](lib/compare.mjs), [`tests/semantic-suite.mjs`](tests/semantic-suite.mjs), [`scripts/export-semantic-baseline.mjs`](scripts/export-semantic-baseline.mjs), [docs](docs/semantic-tier.md) | working; verified on randyfay.com's development copy and a static mirror, with negative controls |
 | Asset integrity tier (SHA-256 of every file) | randyfay.com `test/playwright/tests/` | prototyped; the semantic tier also asserts every asset resolves |
 | Access tier (unpublished content must still return 403) | randyfay.com `test/playwright/tests/` | prototyped, not yet moved into the kit |
+| Stored-content tier (what the database holds, rendered or not: hidden comments, nodes of a removed module) | [`lib/stored.mjs`](lib/stored.mjs), [`tests/stored-suite.mjs`](tests/stored-suite.mjs), [`scripts/stored-exporters/`](scripts/stored-exporters/), [docs](docs/stored-tier.md) | working; built on hobobiker.com (Drupal 6), with a negative control. Exporter for Drupal 11 not written yet |
 | Path tier (every alias, listing route and asset resolves) | covered by the semantic tier | working; redirects not yet modeled |
 | Visual tier (curated screenshots, informational only) | `tests/` | prototyped on randyfay.com |
 | In-browser visible-text check (hidden text, script-built content) | [`tests/visible-suite.mjs`](tests/visible-suite.mjs) | working; verified with a hidden-paragraph negative control |

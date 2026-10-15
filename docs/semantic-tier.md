@@ -60,8 +60,42 @@ captures every one that returns 200 as a page of type `route`, and records the o
 or restricted on the source (`brokenOrRestrictedLinks`) instead of asserting them. Fidelity means a
 link that is broken on the source is expected to stay broken, not to fail the target.
 
+Discovery follows the links **and the menus (breadcrumbs included)** of discovered routes too, not
+just of content pages. On hobobiker.com, `/audio`, `/audio/by`, `/wp` and `/triplog` were reachable
+only from breadcrumbs on listing pages, and an early baseline missed them.
+
 Only assets that actually return 200 on the source count as known; a file the database lists but
-the server 404s is already broken there.
+the server 404s is already broken there. The same goes for images: each internal image on a baseline
+page is requested at export, and one that does not load on the source is recorded with
+`broken: <status>`. The target must still show it, but is not required to load it (on hobobiker.com,
+relative `src="sites/default/files/..."` paths that resolve under the page's own path).
+
+### Bounding discovery
+
+Some sites generate a link space with no useful end. On hobobiker.com each per-day
+`tripinfo_item/DAY/START/END` page links ‹ prev / next › across every day of every trip, whatever range
+it was opened from. Following them reached **9,738 pages** (557 days × about 18 range contexts) in a
+2,345-page site, and took the export from 44 s to 11 minutes. Bound it in the config:
+
+```js
+discover: {
+  // From a tripinfo_item page, do not follow links to other tripinfo_item pages. The ones linked from
+  // the route tables are still captured (one hop); the walk stops there. The links stay recorded.
+  noFollow: [{ from: '^tripinfo_item/', links: '^tripinfo_item/' }],
+}
+```
+
+`exclude` drops a path entirely. `noFollow` keeps the pages that are linked from elsewhere and stops
+the walk at them. Whether to bound is a decision: write it in the site's discoveries log, because a
+static crawl meets the same explosion.
+
+### Known limit: text a script writes
+
+The baseline reads HTML, so text written by JavaScript is not in it. On hobobiker.com, 21 pages build
+an email address with `document.write()`. The baseline records "Feel free to email ." with a hole,
+and the visible-text tier (which runs the script) then fails on the original itself. Declare such
+lines for the `visible` kind, and remember that the address itself is checked by no tier. A
+browser-rendered baseline for pages with a `<script>` in their content would close this; not built yet.
 
 ## cheerio
 

@@ -19,4 +19,11 @@ first start with unfilled placeholders (Playwright's browser image build) must b
 second, which the template does.
 
 **Why the primary URL:** it is the one signal that differs reliably between a developer copy and a
-production host without adding configuration to either. Check yours before relying on it.
+production host without adding configuration to either. Check yours before relying on it: on the
+production server, `ddev exec 'echo $DDEV_PRIMARY_URL'`. Checked: randyfay.com and hobobiker.com both
+report their real domain (`https://hobobiker.com`), so the guard skips them.
+
+**Ignore every file the add-on installs, not just the obvious ones.** For ddev-playwright that
+includes `.ddev/web-entrypoint.d/mkcert-nssdb.sh` and `.ddev/web-entrypoint.d/php-fpm-capacity.sh`,
+which would run on production if committed. Build the ignore list from the manifest's
+`project_files`, then confirm with `git status` after the first install.

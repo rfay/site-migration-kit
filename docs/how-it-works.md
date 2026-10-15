@@ -65,6 +65,8 @@ whether the move was faithful.
 | The original site itself changed since the capture | Yes | source-drift check |
 | Content outside the main content area (sidebars, footers) | No: not captured | by design |
 | The copy links back to the old site, or to something not static | Yes | the static self-containment tests |
+| Stored content that never showed (hidden comments, pages of a removed module) dropped by a CMS rebuild | Yes, for the targets you enforce it on | the stored-content tests |
+| Text a script writes into the page (for example an email address built by `document.write`) | No: not in the reference | known limit |
 
 ## The tools
 
@@ -79,6 +81,7 @@ whether the move was faithful.
 | `own-domain-report.mjs` | Lists hardcoded links and images pointing at the site's own public domain | When writing up discoveries |
 | `additions-report.mjs` | Lists what the new site shows that the reference never had | After a run passes, to read for leftovers |
 | `mirror-static.mjs`, `serve-static.mjs --run` | Makes a throwaway static copy and runs tests against it, then shuts down | Rehearsing, or checking a static export |
+| Stored-content tests (`stored:`) and `stored-exporters/drupal6.mjs` | Compare what the old and new *databases* hold, including content that never showed ([stored-tier.md](stored-tier.md)) | Every run against a CMS rebuild |
 | `vendor-into.sh` | Copies a version of this kit into a site's repository as plain files | Setting up a site |
 
 The access and file-fingerprint checks currently live in each site's repository and are planned to move

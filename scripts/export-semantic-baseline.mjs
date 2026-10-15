@@ -97,6 +97,33 @@ async function referencesOf(html, pageUrl) {
   return { external: [...external].sort(), internalNonOk };
 }
 
+// Internal images that do not load on the SOURCE (a relative src that resolves under the page path, a
+// missing derivative) are already broken there. Each gets `broken: <status>`, so the suite does not
+// demand that a target load what the original never did. Fidelity: broken stays broken.
+const imageMemo = new Map();
+async function markBrokenImages(rec, pageUrl) {
+  for (const img of rec.images) {
+    let u;
+    try { u = new URL(img.src, pageUrl); } catch { continue; }
+    const own = u.origin !== baseOrigin && ownHosts.has(hostKey(u.hostname));
+    if (u.origin !== baseOrigin && !own) continue;
+    const href = `${baseOrigin}${u.pathname}${u.search}`;
+    if (!imageMemo.has(href)) {
+      let st;
+      try { st = (await fetch(href, { redirect: 'follow' })).status; } catch { st = 'error'; }
+      imageMemo.set(href, st);
+    }
+    if (imageMemo.get(href) !== 200) img.broken = imageMemo.get(href);
+  }
+}
+
+// config.discover.noFollow: [{ from: '<regex>', links: '<regex>' }]. On a page whose path matches
+// `from`, links matching `links` are not followed. That bounds discovery where a site generates an
+// unbounded or combinatorial link space: pages linked from elsewhere are still captured, but the
+// walk stops at them (one hop). Links that are not followed are still recorded on the page.
+const noFollow = (config.discover?.noFollow ?? []).map((r) => ({ from: new RegExp(r.from), links: new RegExp(r.links) }));
+const followable = (fromKey, linkKey) => !noFollow.some((r) => r.from.test(fromKey) && r.links.test(linkKey));
+
 const pages = [];
 const internalLinkUses = new Map();
 const menuKeys = new Set();
@@ -117,6 +144,7 @@ for (const it of items) {
     const html = await res.text();
     const rec = extractSource(html, { pageUrl, baseUrl, extract: config.extract, ownDomains: config.ownDomains });
     rec.references = await referencesOf(html, pageUrl);
+    await markBrokenImages(rec, pageUrl);
     if (!rec.contentFound) {
       console.warn(`  WARNING: ${p} (${it.id}): content selector matched nothing; recorded empty.`);
     }
@@ -128,10 +156,10 @@ for (const it of items) {
     totals.images += rec.images.length;
     totals.links += rec.links.length;
     totals.menuItems += Object.values(rec.menus).reduce((n, m) => n + m.length, 0);
-    for (const m of Object.values(rec.menus)) for (const item of m) menuKeys.add(item.key);
+    for (const m of Object.values(rec.menus)) for (const item of m) if (followable(keyOf(p), item.key)) menuKeys.add(item.key);
     byType[it.type] = (byType[it.type] ?? 0) + 1;
     for (const l of rec.links) {
-      if (!l.internal || knownPaths.has(l.key)) continue;
+      if (!l.internal || knownPaths.has(l.key) || !followable(keyOf(p), l.key)) continue;
       const u = internalLinkUses.get(l.key) ?? { count: 0, from: [] };
       u.count++;
       if (u.from.length < 3) u.from.push(p);
@@ -188,6 +216,7 @@ while (queue.length) {
       pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] }, ownDomains: config.ownDomains,
     });
     rec.references = await referencesOf(html, pageUrl);
+    await markBrokenImages(rec, pageUrl);
     const file = `pages/route__${safeName(key)}`;
     writeFileSync(path.join(outDir, file), JSON.stringify(rec, null, 2) + '\n');
     pages.push({ path: key, id: `route:${key}`, type: 'route', title: rec.primaryHeading, tags: ['route'], file });
@@ -197,11 +226,15 @@ while (queue.length) {
     totals.lines += rec.lines.length;
     totals.images += rec.images.length;
     totals.links += rec.links.length;
-    for (const l of rec.links) {
-      if (!l.internal || knownPaths.has(l.key) || queued.has(l.key)) continue;
-      queued.add(l.key);
-      queue.push(l.key);
-      internalLinkUses.set(l.key, { count: 1, from: [key] });
+    totals.menuItems += Object.values(rec.menus).reduce((n, m) => n + m.length, 0);
+    // A route's menus are followed as well as its links: a breadcrumb on a listing page can be the
+    // only way to reach its parent listing (hobobiker's /audio, /audio/by, /wp, /triplog).
+    const next = [...rec.links.filter((l) => l.internal).map((l) => l.key), ...Object.values(rec.menus).flat().map((m) => m.key)];
+    for (const k of next) {
+      if (knownPaths.has(k) || queued.has(k) || !followable(key, k)) continue;
+      queued.add(k);
+      queue.push(k);
+      internalLinkUses.set(k, { count: 1, from: [key] });
     }
   } else if (status !== 200) {
     unmappedLinks.push({ key, status, uses: uses.count, from: uses.from });

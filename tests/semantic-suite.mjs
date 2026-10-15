@@ -71,8 +71,8 @@ export function registerSemanticSuite({ test, expect, config, root }) {
         const target = extractTarget(await res.text(), { pageUrl, baseUrl: baseURL, ownDomains: config.ownDomains });
         diffs.push(...compareSemantic(baseRec, target, { knownPaths, strict: config.strict ?? {} }));
 
-        // Baseline images must exist AND load on the target (internal ones; images hosted
-        // elsewhere are only checked for presence, since the network is not part of the test).
+        // Baseline images must exist AND load on the target (internal ones that loaded on the source;
+        // images hosted elsewhere are only checked for presence, since the network is not part of the test).
         const origin = new URL(baseURL).origin;
         const checked = new Set();
         for (const img of baseRec.images) {
@@ -80,6 +80,9 @@ export function registerSemanticSuite({ test, expect, config, root }) {
           checked.add(img.name);
           const hit = target.images.find((t) => t.name === img.name);
           if (!hit) continue; // already reported by compareSemantic
+          // Did not load on the source either (recorded at export). It must still be present, but it
+          // stays broken: we reproduce the site, we do not repair it.
+          if (img.broken) continue;
           const abs = new URL(hit.src, pageUrl);
           if (abs.origin !== origin) continue;
           const r = await request.get(abs.href);

@@ -21,7 +21,8 @@ const baseUrl = config.source.baseUrl.replace(/\/$/, '') + '/';
 const dir = path.join(root, 'baseline', 'semantic');
 const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8'));
 
-const browser = await chromium.launch();
+// --disable-dev-shm-usage: Docker's default 64 MB /dev/shm crashes the tab after ~2,000 page loads.
+const browser = await chromium.launch({ args: ['--disable-dev-shm-usage'] });
 const context = await browser.newContext({ viewport: VIEWPORT, ignoreHTTPSErrors: true });
 const page = await context.newPage();
 const pages = {};

@@ -38,6 +38,28 @@ good migration from a bad one. No migration happens in this session.
 
 Tag: `s1-baseline-frozen`.
 
+### Measured on hobobiker.com (rehearsal, 2026-10-15)
+
+2,345 baseline pages (1,601 node paths, 469 per-day tripinfo pages, 275 discovered routes). The full
+log is in the hobobiker repo, `migration/REHEARSAL.md`.
+
+| Step | Time | Live or pre-bake |
+|---|---|---|
+| Pristine restore (database + 1.2 GB files + fingerprint check) | 19 s | live |
+| Read-only audit script | 23 s | live |
+| Playwright image build (second `ddev restart`) | 4 m 46 s | **pre-bake** |
+| Manifest, stored-content export | 2 s each | live |
+| Semantic baseline export | 44 s (11 min before bounding tripinfo discovery) | live |
+| Layout baseline export | 2 m 14 s | **pre-bake** |
+| HTTP tiers vs original (baseline, semantic, access, asset) | 26 s, 4,200 tests | live |
+| Browser tiers vs original (visible, layout) | 5 m 19 s, 4,690 tests | **pre-bake** |
+| Full self-check, stored tier enforced | 4 m 09 s, 10,335 tests | **pre-bake** |
+| wget mirror + rewrite | 19 s + 5 s | live |
+| Negative controls (7 breaks), targeted run | 2 s + 6 s | live |
+
+Good live moments: the tripinfo link explosion (9,738 pages) and the decision to bound it; a CSS-hidden
+paragraph that only the visible-text tier sees; the stored-content control naming the one missing comment.
+
 ## Part 2: The Last Ride (Oct 23): static HTML
 
 Goal: convert the site to static HTML and prove it with the Part 1 suite. The approach follows Karen
@@ -74,9 +96,12 @@ Tag: `s3-d11-run`.
 
 ## Things to rehearse that have not been
 
-- The whole of Part 1 with a stopwatch on a clean checkout (the two-start dev-tools install
-  included).
-- Auto mode with the settings template, recording blocks.
-- The D6 specifics: PHP-evaluated nodes, macros expanded at render time, comments invisible to
-  anonymous users, 85 nodes that render empty. The extractor must be taught to see them; whether
-  the semantic tier catches each is untested on the real site.
+- Auto mode with the settings template, recording blocks. (The hobobiker rehearsal ran without it.)
+- Part 1 from a truly clean checkout, start to finish, with the kit changes from that rehearsal vendored in.
+- Part 2's open hobobiker decisions: unpublished pages answering 404 in the archive, and whether
+  to archive the tripinfo prev/next days beyond one hop.
+
+Rehearsed on hobobiker.com (2026-10-15): the D6 specifics. Tripinfo tables (PHP at render), expanded
+`[hobophoto:]` macros and the 85 empty-module nodes are all in the baseline, and
+`tests/baseline-sanity.spec.ts` there asserts it. Comments never render (the module is disabled), so
+they are held by the new stored-content tier instead.

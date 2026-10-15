@@ -32,7 +32,8 @@ for (const p of index.pages) {
     continue;
   }
   const extract = p.type === 'route' ? { ...config.extract, content: config.extract.routeContent ?? ['main'] } : config.extract;
-  const now = extractSource(await res.text(), { pageUrl, baseUrl, extract });
+  // ownDomains must match the export, or every page with a hardcoded own-domain link reads as drifted.
+  const now = extractSource(await res.text(), { pageUrl, baseUrl, extract, ownDomains: config.ownDomains });
   const was = JSON.parse(readFileSync(path.join(root, 'baseline/semantic', p.file), 'utf8'));
 
   const notes = [];
@@ -44,7 +45,9 @@ for (const p of index.pages) {
   if (removed.length) notes.push(`${removed.length} line(s) removed, e.g. "${removed[0].slice(0, 80)}"`);
   if (!added.length && !removed.length && !same(now.lines, was.lines)) notes.push('same lines, different order');
   if (now.primaryHeading !== was.primaryHeading) notes.push('heading changed');
-  if (!same(now.images, was.images)) notes.push('images changed');
+  // `broken` is added at export (the image did not load on the source); a fresh extract has no status.
+  const plain = (imgs) => imgs.map(({ broken, ...img }) => img);
+  if (!same(plain(now.images), plain(was.images))) notes.push('images changed');
   if (!same(now.links, was.links)) notes.push('links changed');
   if (!same(now.menus, was.menus)) notes.push('menus changed');
   if (notes.length) drifted.push({ path: p.path, notes });
