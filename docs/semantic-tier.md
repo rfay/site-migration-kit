@@ -163,3 +163,8 @@ the point of rehearsing:
    the mirror" was really the original site tested twice. Be suspicious of a result that is too fast
    or identical; give every target run a negative control (delete a paragraph, an image, a file and
    confirm the suite names it).
+6. **A normalized link key is not a URL** (hobobiker.com). Keys drop `.html`/`.htm` so `/a/b.html` and
+   `/a/b` compare as one page, but the exporter used to request the key itself to decide whether a link
+   was broken: `/files/maps/Manchester to Exeter.htm` (200) was checked as `.../Manchester to Exeter`
+   (404) and recorded as broken, so the suite never required it on a target. The exporter now requests
+   the URL each key was first seen as, and a page found through a `.htm` link is tested at that URL.

@@ -69,11 +69,17 @@ for (const u of assetUrls) knownPaths.add(keyOf(decodeURIComponent(u)));
 // the original did, and an internal reference may be dead only where it was already dead or
 // restricted on the original. Statuses are looked up once per distinct reference.
 const statusMemo = new Map();
+// A key is a normalized, comparable form (no .html, no index.html, no trailing slash, decoded), so it
+// is not always a URL the site answers: /maps/a.htm becomes maps/a, which 404s. Every key is mapped to
+// the site-relative URL it was first seen as, and that URL is what gets requested. Without this, working
+// links to .htm/.html files were recorded as broken.
+const hrefOf = new Map();
+const urlPathOf = (key) => hrefOf.get(key) ?? `/${key}`;
 async function statusOf(key) {
   if (!statusMemo.has(key)) {
     let st;
     try {
-      st = (await fetch(`${baseOrigin}/${key}`, { redirect: 'manual' })).status;
+      st = (await fetch(`${baseOrigin}${urlPathOf(key)}`, { redirect: 'manual' })).status;
     } catch {
       st = 'error';
     }
@@ -85,7 +91,11 @@ async function referencesOf(html, pageUrl) {
   const external = new Set();
   const internal = new Set();
   for (const r of extractReferences(html, pageUrl, baseOrigin, ownHosts)) {
-    if (r.internal) internal.add(internalKey(r.url));
+    if (r.internal) {
+      const key = internalKey(r.url);
+      if (!hrefOf.has(key)) hrefOf.set(key, r.url.pathname + r.url.search);
+      internal.add(key);
+    }
     else external.add(externalKey(r.url));
   }
   const internalNonOk = [];
@@ -195,20 +205,20 @@ while (queue.length) {
   const uses = internalLinkUses.get(key) ?? { count: 0, from: [] };
   let status = null;
   try {
-    status = (await fetch(`${baseOrigin}/${key}`, { redirect: 'manual' })).status;
+    status = (await fetch(`${baseOrigin}${urlPathOf(key)}`, { redirect: 'manual' })).status;
   } catch {
     status = 'error';
   }
   const skip = !eligibleQuery(key) || excludeRoutes.some((r) => r.test(key));
   if (status === 200 && !skip) {
-    const pageUrl = `${baseUrl}/${key}`;
+    const pageUrl = `${baseUrl}${urlPathOf(key)}`;
     const res = await fetch(pageUrl, { redirect: 'follow' });
     // Only HTML is a page. Anything else that answers 200 (a PDF, a patch, a key file) is a file: it
     // joins the assets every target must be able to serve, and is never read as page content.
     if (!/html/i.test(res.headers.get('content-type') ?? '')) {
-      assetUrls.push(`/${key}`);
+      assetUrls.push(urlPathOf(key));
       knownPaths.add(key);
-      discoveredFiles.push(`/${key}`);
+      discoveredFiles.push(urlPathOf(key));
       continue;
     }
     const html = await res.text();
@@ -219,7 +229,11 @@ while (queue.length) {
     await markBrokenImages(rec, pageUrl);
     const file = `pages/route__${safeName(key)}`;
     writeFileSync(path.join(outDir, file), JSON.stringify(rec, null, 2) + '\n');
-    pages.push({ path: key, id: `route:${key}`, type: 'route', title: rec.primaryHeading, tags: ['route'], file });
+    // A page reached through a .htm/.html URL is tested at that URL: its key without the suffix is not
+    // something the original serves.
+    const hrefPath = urlPathOf(key).split('?')[0];
+    const pagePath = /\.html?$/i.test(hrefPath) ? decodeURIComponent(urlPathOf(key)).replace(/^\/+/, '') : key;
+    pages.push({ path: pagePath, id: `route:${key}`, type: 'route', title: rec.primaryHeading, tags: ['route'], file });
     routes.push(key);
     knownPaths.add(key);
     byType.route = (byType.route ?? 0) + 1;
