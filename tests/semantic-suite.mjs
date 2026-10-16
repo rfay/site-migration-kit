@@ -19,7 +19,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { extractTarget } from '../lib/extract.mjs';
+import { extractTarget, responseHtml } from '../lib/extract.mjs';
 import { compareSemantic, applyExpectedDifferences } from '../lib/compare.mjs';
 
 export function registerSemanticSuite({ test, expect, config, root }) {
@@ -68,7 +68,7 @@ export function registerSemanticSuite({ test, expect, config, root }) {
       if (res.status() !== 200) {
         diffs.push({ kind: 'status', item: `expected 200, got ${res.status()}` });
       } else {
-        const target = extractTarget(await res.text(), { pageUrl, baseUrl: baseURL, ownDomains: config.ownDomains });
+        const target = extractTarget(await responseHtml(res), { pageUrl, baseUrl: baseURL, ownDomains: config.ownDomains });
         diffs.push(...compareSemantic(baseRec, target, { knownPaths, strict: config.strict ?? {} }));
 
         // Baseline images must exist AND load on the target (internal ones that loaded on the source;

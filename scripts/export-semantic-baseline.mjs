@@ -17,7 +17,7 @@
 import { mkdirSync, writeFileSync, rmSync, readFileSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { extractSource, linkKey, ownHostSet, hostKey } from '../lib/extract.mjs';
+import { extractSource, linkKey, ownHostSet, hostKey, responseHtml } from '../lib/extract.mjs';
 import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
 
 const argv = process.argv.slice(2);
@@ -151,7 +151,7 @@ for (const it of items) {
       skipped++;
       continue;
     }
-    const html = await res.text();
+    const html = await responseHtml(res);
     const rec = extractSource(html, { pageUrl, baseUrl, extract: config.extract, ownDomains: config.ownDomains });
     rec.references = await referencesOf(html, pageUrl);
     await markBrokenImages(rec, pageUrl);
@@ -221,7 +221,7 @@ while (queue.length) {
       discoveredFiles.push(urlPathOf(key));
       continue;
     }
-    const html = await res.text();
+    const html = await responseHtml(res);
     const rec = extractSource(html, {
       pageUrl, baseUrl, extract: { ...config.extract, content: config.extract.routeContent ?? ['main'] }, ownDomains: config.ownDomains,
     });

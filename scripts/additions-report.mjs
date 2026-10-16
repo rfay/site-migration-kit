@@ -21,7 +21,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { extractTarget, normalizeText } from '../lib/extract.mjs';
+import { extractTarget, normalizeText, responseHtml } from '../lib/extract.mjs';
 
 const argv = process.argv.slice(2);
 const get = (flag, dflt) => (argv.indexOf(flag) >= 0 ? argv[argv.indexOf(flag) + 1] : dflt);
@@ -47,7 +47,7 @@ for (const p of index.pages) {
     pages.push({ page: p, status: res.status, lines: [] });
     continue;
   }
-  const rec = extractTarget(await res.text(), { pageUrl: url, baseUrl: target, ownDomains: config.ownDomains });
+  const rec = extractTarget(await responseHtml(res), { pageUrl: url, baseUrl: target, ownDomains: config.ownDomains });
   pages.push({ page: p, status: 200, lines: [...new Set(rec.lines)] });
 }
 
@@ -64,7 +64,7 @@ async function sourceLines(p) {
   try {
     const res = await fetch(url, { redirect: 'follow' });
     if (res.status !== 200) return new Set();
-    return new Set(extractTarget(await res.text(), { pageUrl: url, baseUrl: sourceUrl }).lines);
+    return new Set(extractTarget(await responseHtml(res), { pageUrl: url, baseUrl: sourceUrl }).lines);
   } catch {
     console.warn(`  could not read the source for ${p.page.path}; its report may be noisy`);
     return new Set();

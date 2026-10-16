@@ -28,7 +28,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
-import { hostKey, ownHostSet } from '../lib/extract.mjs';
+import { hostKey, ownHostSet, responseHtml } from '../lib/extract.mjs';
 import { applyExpectedDifferences } from '../lib/compare.mjs';
 
 export function registerStaticSuite({ test, expect, config, root }) {
@@ -63,7 +63,7 @@ export function registerStaticSuite({ test, expect, config, root }) {
         const leakHosts = new Set([...forbidden].filter((h) => h !== target.host));
 
         const seen = new Set();
-        for (const r of extractReferences(await res.text(), pageUrl, target.origin, ownHosts)) {
+        for (const r of extractReferences(await responseHtml(res), pageUrl, target.origin, ownHosts)) {
           const id = `${r.url.href}`;
           if (seen.has(id)) continue;
           seen.add(id);

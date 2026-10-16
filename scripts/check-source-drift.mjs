@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { extractSource } from '../lib/extract.mjs';
+import { extractSource, responseHtml } from '../lib/extract.mjs';
 
 const argv = process.argv.slice(2);
 const rootArg = argv.indexOf('--root');
@@ -33,7 +33,7 @@ for (const p of index.pages) {
   }
   const extract = p.type === 'route' ? { ...config.extract, content: config.extract.routeContent ?? ['main'] } : config.extract;
   // ownDomains must match the export, or every page with a hardcoded own-domain link reads as drifted.
-  const now = extractSource(await res.text(), { pageUrl, baseUrl, extract, ownDomains: config.ownDomains });
+  const now = extractSource(await responseHtml(res), { pageUrl, baseUrl, extract, ownDomains: config.ownDomains });
   const was = JSON.parse(readFileSync(path.join(root, 'baseline/semantic', p.file), 'utf8'));
 
   const notes = [];

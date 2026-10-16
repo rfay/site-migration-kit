@@ -168,3 +168,8 @@ the point of rehearsing:
    was broken: `/files/maps/Manchester to Exeter.htm` (200) was checked as `.../Manchester to Exeter`
    (404) and recorded as broken, so the suite never required it on a target. The exporter now requests
    the URL each key was first seen as, and a page found through a `.htm` link is tested at that URL.
+7. **Decode pages the way a browser does** (hobobiker.com). Pre-Drupal route-map pages are served as bare
+   `text/html` with no charset anywhere, in windows-1252. Reading every response as UTF-8 froze `©` as
+   U+FFFD: the visible tier (a real browser) then failed on the original, and a rebuild that re-encodes
+   those pages correctly would have failed the semantic tier. `decodeHtml()` / `responseHtml()` in
+   `lib/extract.mjs` use the header charset, then `<meta charset>`, then UTF-8 if valid, else windows-1252.
