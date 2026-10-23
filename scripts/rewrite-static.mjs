@@ -24,7 +24,9 @@
 //   anchor  points at #<anchor> on this page if it has that id, else on the mirrored page that does,
 //           else the link is unwrapped. $1.. are the regex's capture groups.
 //
-// Only .html files under --dir are changed. The kit never touches anything outside it.
+// Only .html files under --dir are changed. The kit never touches anything outside it. An .html file
+// that is an uploaded file (in the baseline's assets) gets exact URL replacements only, so every other
+// byte stays as the original served it.
 
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -99,11 +101,18 @@ const existsInCopy = (key) => {
   return p !== '' && existsSync(path.join(dir, p)) && statSync(path.join(dir, p)).isFile();
 };
 
+// Uploaded files (baseline assets) that are also HTML, by their path under --dir.
+const uploads = new Set((index.assets ?? []).map((a) => decodeURIComponent(a.split('?')[0]).replace(/^\/+/, '')));
+
 let changedFiles = 0;
+let uploadsChanged = 0;
 for (const file of htmlFiles) {
   const pageKey = fileKey(file);
+  const fileRel = path.relative(dir, file).split(path.sep).join('/');
   const $ = cheerio.load(readFileSync(file, 'utf8'));
   let changed = false;
+  let structural = false;
+  const edits = [];
 
   for (const [tag, attr] of REFS) {
     $(`${tag}[${attr}]`).each((_, el) => {
@@ -115,38 +124,58 @@ for (const file of htmlFiles) {
 
       const key = internalKey(url);
       const rel = url.pathname + url.search + (url.hash ?? '');
-      const unwrap = () => { $(el).replaceWith($(el).contents()); };
+      // In an uploaded file only an attribute value can change (see below); record each one.
+      const setAttr = (v) => { $(el).attr(attr, v); edits.push([raw, v]); };
+      const unwrap = () => { $(el).replaceWith($(el).contents()); structural = true; };
+      const remove = () => { $(el).remove(); structural = true; };
       const canUnwrap = tag === 'a' || tag === 'area';
 
-      if (originalDead.has(key)) { $(el).attr(attr, rel); bump('kept as the original had it (dead or restricted), made relative'); changed = true; return; }
+      if (originalDead.has(key)) { setAttr(rel); bump('kept as the original had it (dead or restricted), made relative'); changed = true; return; }
 
+      const changedBefore = changed;
       for (const rule of rules) {
         const m = key.match(rule.re);
         if (!m) continue;
         changed = true;
-        if (rule.action === 'remove') { $(el).remove(); bump(rule.name ?? 'remove'); return; }
+        if (rule.action === 'remove') { remove(); bump(rule.name ?? 'remove'); return; }
         if (rule.action === 'unwrap' && canUnwrap) { unwrap(); bump(rule.name ?? 'unwrap'); return; }
-        if (rule.action === 'relative') { $(el).attr(attr, rel); bump(rule.name ?? 'relative'); return; }
+        if (rule.action === 'relative') { setAttr(rel); bump(rule.name ?? 'relative'); return; }
         if (rule.action === 'anchor' && canUnwrap) {
           const id = (rule.anchor ?? '').replace(/\$(\d)/g, (_, n) => m[Number(n)] ?? '');
-          if ($(`[id="${id}"]`).length) { $(el).attr(attr, `#${id}`); bump(`${rule.name ?? 'anchor'} (same page)`); return; }
+          if ($(`[id="${id}"]`).length) { setAttr(`#${id}`); bump(`${rule.name ?? 'anchor'} (same page)`); return; }
           const other = (commentPages.get(id) ?? []).sort()[0];
-          if (other !== undefined) { $(el).attr(attr, `/${other}#${id}`); bump(`${rule.name ?? 'anchor'} (another page)`); return; }
+          if (other !== undefined) { setAttr(`/${other}#${id}`); bump(`${rule.name ?? 'anchor'} (another page)`); return; }
           unwrap(); bump(`${rule.name ?? 'anchor'} (target not in the copy; unwrapped)`); return;
         }
-        changed = false; // rule matched but could not apply to this kind of reference: fall through
+        changed = changedBefore; // rule matched but could not apply to this kind of reference: fall through
         break;
       }
 
-      if (existsInCopy(key)) { $(el).attr(attr, rel); bump('target is in the copy, made relative'); changed = true; return; }
+      if (existsInCopy(key)) { setAttr(rel); bump('target is in the copy, made relative'); changed = true; return; }
       if (canUnwrap) { unwrap(); bump('not in the copy: link removed, text kept'); changed = true; return; }
       unresolved.push(`${path.relative(dir, file)}: <${tag} ${attr}> ${raw}`);
     });
   }
-  if (changed) { writeFileSync(file, $.html()); changedFiles++; }
+  if (!changed) continue;
+  if (!uploads.has(fileRel)) { writeFileSync(file, $.html()); changedFiles++; continue; }
+  // An uploaded file (a legacy page under files/) is served byte for byte, so it is not re-serialized:
+  // each changed URL is replaced as exact text, reading and writing bytes unchanged (latin1), and nothing
+  // else in the file moves. Removing or unwrapping an element cannot be done that way: report it.
+  if (structural) { unresolved.push(`${fileRel}: an uploaded file would need an element removed; left unchanged`); continue; }
+  let text = readFileSync(file, 'latin1');
+  let applied = 0;
+  // One replacement per distinct URL: split/join already changes every occurrence of it.
+  for (const [from, to] of new Map(edits.reverse())) {
+    const f =[from, from.replace(/&/g, '&amp;')].find((s) => text.includes(s));
+    if (!f) { unresolved.push(`${fileRel}: ${from} (in an uploaded file; not found as written)`); continue; }
+    text = text.split(f).join(to);
+    applied++;
+  }
+  if (applied) { writeFileSync(file, text, 'latin1'); changedFiles++; uploadsChanged++; }
 }
 
-console.log(`rewrite-static: ${changedFiles} of ${htmlFiles.length} page(s) changed`);
+console.log(`rewrite-static: ${changedFiles} of ${htmlFiles.length} page(s) changed` +
+  (uploadsChanged ? `, ${uploadsChanged} of them uploaded files (exact URL replacements only)` : ''));
 for (const [k, n] of Object.entries(counts).sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(5)}  ${k}`);
 if (unresolved.length) {
   console.log(`  UNRESOLVED ${unresolved.length}:`);

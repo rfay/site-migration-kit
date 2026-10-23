@@ -145,8 +145,9 @@ got 200"), and a CSS-hidden paragraph (visible-text only). A fresh crawl then re
 A no-preparation control run of the Drupal 6 site: restore the prep copy (20 s), crawl it from the host
 (2 m 08 s, 5,011 files, 1.3 GB), rewrite (5 s, 291 of 2,454 pages changed), and the HTTP checks against the
 static project with `MIGRATION_TARGET=static` (52 s): **6,677 pass, 112 fail**, every semantic check passing.
-The 112 are decisions, not losses: 81 private pages answer 404, 26 legacy `.htm` files under `files/` were
-rewritten by wget, and 5 hand-made pages link to `/mexico/`, a directory with no index in the archive.
+None of the 112 is a loss: 81 private pages answer 404, 26 legacy `.htm` files under `files/` were
+rewritten by wget, and 5 hand-made pages link to `/mexico/`, a directory with no index in the archive. (The
+last two turned out to be kit gaps; see the prepared run below.)
 
 The first run had 320 failures, from two causes worth knowing before any crawl:
 
@@ -162,6 +163,16 @@ The first run had 320 failures, from two causes worth knowing before any crawl:
 Also: list the prep copy's hosts, both `*.ddev.site` and its public (Coder) URL, in `config.static.forbiddenHosts`
 and in the rewrite rules file's `hosts`; otherwise leftovers are reported only as unknown external URLs. On a
 Drupal 6 project there is no `ddev drush`; the container's drush runs as `ddev exec drush`.
+
+**The prepared run (Part 2, 2026-10-23).** The survey reduced the series' checklist to two steps: the
+`comment` module was already disabled (no comment shows on the original), there are no login or user
+blocks, the one poll is closed, and Drupal 6 emits no shortlink tags. The only form on the site was a
+Search pane on the home page's Panel; it was removed, and Google Analytics was disabled (owner's decision).
+Of the 112 control-run failures, the 26 asset and 5 `/mexico/` failures were gaps in the kit, not decisions:
+wget had rewritten uploaded HTML files, and the static server did not treat a trailing slash as Drupal
+does (both fixed, see [static-self-containment.md](static-self-containment.md)). What remained were
+decisions to declare: 81 private pages answering 404, the home page's "Search" line, and 6 uploaded
+gallery pages whose one own-domain link was made relative.
 
 ### Operating notes
 
