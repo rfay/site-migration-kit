@@ -109,6 +109,21 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
   changed lines in each of 6 gallery pages). An upload that would need an element unwrapped or removed is
   left alone and reported as unresolved. The URL change itself is still a difference from the original,
   for the site to declare.
+- **A bounded discovery leaves working links outside the archive (`mirror-static.mjs --one-hop`).**
+  hobobiker.com's baseline captures the 526 `tripinfo_item` day pages its route tables link to and stops
+  there (`discover.noFollow`), because the prev/next pager runs across every day of every trip. But 87 of
+  those pages link to a day the baseline never captured (180 links to 71 pages, all 200 on the original),
+  and Views table headers link to sorted listings (`wp?order=...&sort=desc`). The crawl took its page list
+  from the baseline, so the rewrite unwrapped those links. **The semantic tier did not fail**: it asserts
+  an internal link only when the baseline knows its target (`lib/compare.mjs`), so a removed link to an
+  uncaptured page is invisible to it. The layout tier caught 11 pages whose link colour or width changed.
+  With `--one-hop` the mirror also fetches every page a captured page links to that the baseline did not
+  capture and did not record as dead (on hobobiker.com: 170 candidates, 95 pages and 64 feeds saved, 11
+  normalization artifacts such as `files/.../Colorado` for `Colorado.htm` answering 404). Every baseline
+  page then keeps all its links; the hop pages are untested, and their own links to uncaptured pages are
+  unwrapped (the frontier moves one step out). Unverified on randyfay.com. The semantic gap itself is not
+  closed: asserting such links on every target would fail a Drupal 11 rebuild for dynamic paths it
+  legitimately serves differently, so it is left as a known limit.
 - **A trailing slash is the same page.** Drupal answers `/mexico/` as `/mexico`, and old content links it
   that way. In the archive a directory `mexico/` (made by an alias such as `mexico/photos`) caught
   `/mexico/` and answered 403. The template now serves `/a/b/` from `a/b.html` first.
