@@ -71,7 +71,7 @@ deterministically, and prints a count per decision, so a change in the numbers s
    makes that a failure).
 
 Which hosts count as "the crawled site": the rules file's `hosts` (list the prepared copy that was
-crawled), plus, always, the host the baseline was captured from and the site's own domains, with and
+crawled, under every name it answers to, including a public URL such as a Coder one), plus, always, the host the baseline was captured from and the site's own domains, with and
 without `www.`. The script prints the list. Before that default, a rules file with no hosts rewrote
 nothing and reported only "0 of 2345 page(s) changed".
 
@@ -93,6 +93,11 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
   parameters named in `config.discover.queryParams` (here `['page']`) transitively, and a static server can
   serve them at the original URLs: see `templates/static-urls.nginx.conf`, which tries
   `$uri$is_args$args.html` first.
+- **Files with no extension are content too.** wget saves an RSS feed as `blog/feed` and an old cache file
+  under its own name. A static server must serve the bare file after trying the page names; the template
+  does (`... $uri/index.html $uri $uri/ =404`). Without it, hobobiker.com's archive had 192 dead feed links
+  and 14 missing files. They are served as `application/octet-stream`, so a browser downloads a feed
+  rather than showing it.
 - **Hardcoded references to the site's own domain** are this site, not external links: see "The site's own
   domain is this site" above. `scripts/own-domain-report.mjs` prints the list for a discoveries log.
 - **The baseline exporter now writes to a temporary directory and swaps it in only on success.** A failed

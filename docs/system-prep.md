@@ -5,7 +5,7 @@ The hobobiker series needs four sibling DDEV projects, side by side in the same 
 
 | Project | Role | Used in |
 |---|---|---|
-| `hobobiker` | the original (Drupal 6) and the reference for every test | all three parts |
+| `hobobiker-copy` | the original (Drupal 6) and the reference for every test | all three parts |
 | `hobobiker-prep` | a copy rebuilt from a pristine database dump, then changed by scripts. The only project where destructive changes are allowed. | Part 2 |
 | `hobobiker-static` | the crawled HTML served as a static site | Part 2 |
 | `hobobiker-d11` | the Drupal 11 rebuild | Part 3 |
@@ -39,6 +39,23 @@ services:
     shm_size: 1gb
 ```
 
+## DDEV problems met while setting up (October 2026)
+
+- **`ddev utility rebuild` fails with `"/playwright": not found`** on a project with the ddev-playwright add-on
+  enabled. The add-on stages `.ddev/web-build/playwright/` in a pre-start hook and deletes it after start, and
+  `utility rebuild` builds without running pre-start hooks. Use `ddev restart`; for a no-cache rebuild, first
+  `mkdir -p .ddev/web-build/playwright` and copy `package.json` and `package-lock.json` from the test directory
+  into it. ([Lullabot/ddev-playwright#189](https://github.com/Lullabot/ddev-playwright/issues/189))
+- **A project can vanish from `ddev list`** if it was registered (`ddev config`) while another DDEV command was
+  running for minutes, such as a rebuild: that command saves the project list it read at startup. Its files
+  and config are intact; `ddev start` in its directory registers it again.
+  ([ddev/ddev#9004](https://github.com/ddev/ddev/issues/9004))
+- **Public projects need patched PHP.** These projects have public Coder URLs, so PHP2Shell (October 2026)
+  applies. Check `ddev php -v`: PHP 7.3 and other old versions show "built: Oct 21 2026" or later; 8.2+ show
+  the fixed version. A static project still runs php-fpm, and `/phpstatus` reaches it from outside until
+  [ddev/ddev#9006](https://github.com/ddev/ddev/pull/9006) ships. See
+  [DDEV's notes](https://ddev.com/blog/php2shell-what-ddev-users-need-to-know/).
+
 ## Check list (all true before going live)
 
 - [ ] All four projects appear in `ddev list` as running.
@@ -48,5 +65,7 @@ services:
 - [ ] The pristine dump exists, and is kept outside every repository.
 - [ ] No production credentials or SSH route in any of the four; `push` removed from DDEV providers
       (see [safe-demo-environment.md](safe-demo-environment.md)).
-- [ ] The kit is vendored into `hobobiker` and the test run passes against the original (self-check).
+- [ ] The kit is vendored into `hobobiker-copy` and the test run passes against the original (self-check).
 - [ ] The pipeline's preflight, which names any stopped project, passes.
+- [ ] `ddev php -v` shows the PHP2Shell-fixed build in every project (see above).
+- [ ] The static project has [`templates/static-urls.nginx.conf`](../templates/static-urls.nginx.conf) in `.ddev/nginx/`.

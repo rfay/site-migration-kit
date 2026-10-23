@@ -132,12 +132,36 @@ got 200"), and a CSS-hidden paragraph (visible-text only). A fresh crawl then re
 - **The static project setup that works:** `ddev config --docroot=public` (so `.ddev/` is not served), the
   crawl written into `public/`, and [`templates/static-urls.nginx.conf`](../templates/static-urls.nginx.conf)
   copied to the project's `.ddev/nginx/`. Stock nginx answers `/blog.html` but 404s `/blog`; the snippet is a
-  regular-expression location for dotless paths that tries `$uri.html`, then `$uri/index.html`, then a
-  directory index, and it leaves real files (PDFs, images, CSS) alone. After `ddev restart`, extensionless
-  URLs answer 200 and a missing page still answers 404.
+  regular-expression location for dotless paths that tries `$uri.html`, then `$uri/index.html`, then the
+  file itself (wget saves a feed such as `blog/feed` with no extension), then a directory index, and it
+  leaves real files (PDFs, images, CSS) alone. After `ddev restart`, extensionless URLs answer 200 and a
+  missing page still answers 404.
 - **Preparation can be done with `bee` (or `drush`) and `jq`**, as scripts that print a count. `ddev bee
   eval` passes its arguments to the shell unquoted and mangles PHP; write the PHP to a file in the project
   and use `bee php-script` instead.
+
+### Rehearsed on hobobiker.com (2026-10-23)
+
+A no-preparation control run of the Drupal 6 site: restore the prep copy (20 s), crawl it from the host
+(2 m 08 s, 5,011 files, 1.3 GB), rewrite (5 s, 291 of 2,454 pages changed), and the HTTP checks against the
+static project with `MIGRATION_TARGET=static` (52 s): **6,677 pass, 112 fail**, every semantic check passing.
+The 112 are decisions, not losses: 81 private pages answer 404, 26 legacy `.htm` files under `files/` were
+rewritten by wget, and 5 hand-made pages link to `/mexico/`, a directory with no index in the archive.
+
+The first run had 320 failures, from two causes worth knowing before any crawl:
+
+1. **Crawl a restored prep copy, never a file copy of the original.** The prep project had been made with
+   `cp -r`, database included. One cached rendering in `cache_filter` held the original's public Coder
+   hostname (written when someone browsed the original through Coder), and the crawl copied it into 6
+   pages. The pristine restore runs `drush cc all`, which empties the render caches; the hostname then
+   survives only in `accesslog` and `watchdog`, which never render.
+2. **Files saved with no extension.** wget keeps RSS feeds (`blog/feed`, `taxonomy/term/N/all/feed`) and old
+   cache files under their own names. The static nginx rule did not try the bare file, so 192 links and 14
+   assets failed. The template now does.
+
+Also: list the prep copy's hosts, both `*.ddev.site` and its public (Coder) URL, in `config.static.forbiddenHosts`
+and in the rewrite rules file's `hosts`; otherwise leftovers are reported only as unknown external URLs. On a
+Drupal 6 project there is no `ddev drush`; the container's drush runs as `ddev exec drush`.
 
 ### Operating notes
 

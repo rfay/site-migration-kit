@@ -12,13 +12,15 @@ crawl-bound steps accordingly and pre-bake them.
 
 ## Before any session
 
-- **System prep:** all four hobobiker projects (`hobobiker`, `-prep`, `-static`, `-d11`) set up, listed in the
+- **System prep:** all four hobobiker projects (`hobobiker-copy`, `-prep`, `-static`, `-d11`) set up, listed in the
   workspace's "DDEV project names", `ddev coder setup` done, and running:
   [docs/system-prep.md](../docs/system-prep.md).
 - A disposable, restorable copy that works (restore tested, not assumed). Tell the agent so in
   `AGENTS.md`, and put the classifier settings in your user settings:
   [docs/safe-demo-environment.md](../docs/safe-demo-environment.md).
 - No production credentials or route in the workspace; strip `push` from DDEV providers.
+- The sites have public URLs, so their PHP must have the PHP2Shell fix (October 2026): `ddev php -v` in
+  each, as in [docs/system-prep.md](../docs/system-prep.md).
 - Run the session's actual prompts in auto mode once and record every classifier block; add each
   to the allow list. *Unmeasured: not yet rehearsed in auto mode.*
 
@@ -71,11 +73,34 @@ project next to the original, on the same Coder workspace, so both can be compar
 |---|---|---|
 | 0-10 | Pipeline shape and plan; the sibling project | restore pristine dump -> transform -> crawl/export -> verify, one command. Credit Karen Stevenson's series up front. Before the session, settle the open questions in `docs/retirement-approach.md` (extensionless URLs, reaching one DDEV project from another, the Coder project-name list). |
 | 10-35 | Run it; iterate on failures | The first failures are usually gaps in the baseline or the export, not in the content (rehearsal: 243 menu failures were breadcrumb routes nobody had captured). Fix the right thing and say which it was. |
-| 35-50 | Deliberate changes; the crawl is not self-contained until you make it so | Show the leak: thousands of references still point at the crawled site and every content check still passes. Then the `static:` tier, the rewrite step and its rules. |
-| 35-50 | Deliberate changes | Anything chosen (drop comments, delete empty nodes, rewrite dead embeds) goes in `expected-differences.json` with a reason. |
+| 35-50 | The crawl is not self-contained until you make it so; deliberate changes | Show the leak: references still point at the crawled site and every content check still passes. Then the `static:` tier, the rewrite step and its rules. Anything chosen (drop comments, delete empty nodes, rewrite dead embeds) goes in `expected-differences.json` with a reason. |
 | 50-60 | Green run and review | Review every allowlisted difference. Re-run from a clean restore to show repeatability. |
 
 Pre-bake: the full crawl and any derivative/thumbnail generation. Tag: `s2-static-green`.
+
+### Measured on hobobiker.com (control run, 2026-10-23)
+
+No preparation yet: restore the prep copy, crawl it into `hobobiker-static/public`, rewrite, run the HTTP tiers
+against the static project with `MIGRATION_TARGET=static`. Details in
+[docs/retirement-approach.md](../docs/retirement-approach.md).
+
+| Step | Time | Live or pre-bake |
+|---|---|---|
+| Restore `hobobiker-prep` from the pristine dump (`hobobiker-prep/migration/restore-pristine.sh`) | 20 s | live |
+| Crawl (`mirror-static.mjs` from the host, `--from https://hobobiker-prep.ddev.site`) | 2 m 08 s, 5,011 files | **pre-bake** |
+| Rewrite (`rewrite-static.mjs`) | 5 s, 291 of 2,454 pages changed | live |
+| HTTP tiers incl. `static:` | 52 s, 6,677 pass, 112 fail | live |
+| Browser tiers (visible, layout) | not run; about 5 min in Part 1 | **pre-bake** |
+
+The 112 failures are the session's decisions: 81 private pages answer 404 (declare, static target only), 26 legacy
+`.htm` files under `files/` rewritten by wget (keep them byte for byte or declare), and 5 hand-made pages linking
+to `/mexico/`, a directory with no index in the archive. The first run had 320: a cached rendering carrying the
+original's Coder hostname (the prep copy had been copied, not restored) and feeds the nginx rule did not serve;
+both are fixed.
+
+Before going live: the hobobiker repo needs the prep hosts in `config.static.forbiddenHosts`, a committed rewrite
+rules file listing them, the updated `static-urls.nginx.conf`, and its pipeline scripts (`randyfay/retire/` is
+the model), unless building them is part of the session.
 
 ## Part 3: The Long Haul (Oct 30): Drupal 11
 
@@ -98,8 +123,9 @@ Tag: `s3-d11-run`.
 
 - Auto mode with the settings template, recording blocks. (The hobobiker rehearsal ran without it.)
 - Part 1 from a truly clean checkout, start to finish, with the kit changes from that rehearsal vendored in.
-- Part 2's open hobobiker decisions: unpublished pages answering 404 in the archive, and whether
-  to archive the tripinfo prev/next days beyond one hop.
+- Part 2's open hobobiker decisions: unpublished pages answering 404 in the archive, the 26 rewritten
+  legacy `.htm` files, the `/mexico/` links, and whether to archive the tripinfo prev/next days beyond one hop.
+- Part 2 with a preparation step applied, and the browser tiers against the static project.
 
 Rehearsed on hobobiker.com (2026-10-15): the D6 specifics. Tripinfo tables (PHP at render), expanded
 `[hobophoto:]` macros and the 85 empty-module nodes are all in the baseline, and
