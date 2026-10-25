@@ -12,6 +12,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import { measurePage, VIEWPORT } from '../lib/layout.mjs';
+import { blockHosts } from '../lib/browser.mjs';
 
 const argv = process.argv.slice(2);
 const rootArg = argv.indexOf('--root');
@@ -24,6 +25,7 @@ const index = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8'));
 // --disable-dev-shm-usage: Docker's default 64 MB /dev/shm crashes the tab after ~2,000 page loads.
 const browser = await chromium.launch({ args: ['--disable-dev-shm-usage'] });
 const context = await browser.newContext({ viewport: VIEWPORT, ignoreHTTPSErrors: true });
+await blockHosts(context, config.browser?.blockHosts);
 const page = await context.newPage();
 const pages = {};
 let missing = 0;

@@ -22,6 +22,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { normalizeText } from '../lib/extract.mjs';
 import { applyExpectedDifferences } from '../lib/compare.mjs';
+import { blockHosts } from '../lib/browser.mjs';
 
 export function registerVisibleSuite({ test, expect, config, root }) {
   const dir = path.join(root, 'baseline', 'semantic');
@@ -33,6 +34,7 @@ export function registerVisibleSuite({ test, expect, config, root }) {
     const tags = [...new Set([`@${page.type}`, ...page.tags.map((t) => `@${t}`)])];
     test(`visible: ${page.path} (${page.id}) ${tags.join(' ')}`, async ({ page: browserPage, baseURL }) => {
       const url = new URL(page.path.replace(/^\/+/, ''), baseURL.replace(/\/?$/, '/')).href;
+      await blockHosts(browserPage, config.browser?.blockHosts);
       const response = await browserPage.goto(url, { waitUntil: 'load' });
       const diffs = [];
       if (!response || response.status() !== 200) {

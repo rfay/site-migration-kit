@@ -59,6 +59,10 @@ export default {
   // For a static copy: hosts it must never refer to, besides the source (e.g. the prepared copy that was crawled).
   static: { forbiddenHosts: [] },
 
+  // Hosts the test browser must not request: third-party services whose terms forbid automated or bulk use
+  // and that no check depends on, such as map tiles (lib/browser.mjs). e.g. ['tile.openstreetmap.org']
+  browser: { blockHosts: [] },
+
   // Optional: asset URLs (site-relative) so links to them count as "known" paths.
   async listAssets() {
     return [];
