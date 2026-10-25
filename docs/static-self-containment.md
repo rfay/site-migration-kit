@@ -30,6 +30,14 @@ body) is checked. A page fails if it refers to:
    domain left in an archive fails. (A self-check against the original itself is exempt, because the
    original legitimately contains them.)
 
+Rules 1 and 4 also apply **inside inline `<script>` and `<style>` text and every non-reference attribute**
+(`data-*`, `style`, `onclick`), plain or JSON-escaped (`https:\/\/host`, `https://host`). A Drupal
+page carries its settings as inline JSON, and a module that builds a URL from the request's host puts the
+crawled site's name there: on hobobiker.com (2026-10-24) the map settings of 434 day pages named
+`https://hobobiker-prep.ddev.site/...`, and every attribute-based check passed. Only URL-shaped mentions count
+(`//` before the host, a boundary after it), so prose such as "visit example.com" does not
+(`findHostMentions()` in `lib/references.mjs`).
+
 What "the original did explicitly" means is recorded, per page, when the baseline is frozen: every
 external URL the original page referred to anywhere (not just in its content region, since sidebar and
 footer blocks make links too), and every internal reference that was already dead or restricted. The
@@ -134,6 +142,8 @@ The rules are decisions, and each is worth a sentence in the site's notes. randy
 
 ## What it does not check
 
-- URLs inside CSS (`url(...)`) and inline scripts, and anything built by JavaScript at run time.
+- Dead or new external URLs inside inline scripts and styles (only the source site and the own domains are
+  looked for there), URLs inside CSS files (`url(...)` in a stylesheet), and anything built by JavaScript at
+  run time.
 - Whether an external URL the original linked to still works. The original made that choice; it is
   reproduced, not tested.

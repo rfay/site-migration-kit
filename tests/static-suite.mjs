@@ -13,6 +13,10 @@
 //      fine when the original made it explicitly (drupal.org, a hardcoded production domain...).
 //      A new one means something non-static crept in.
 //
+// Leaks of kind 1 are also looked for inside inline <script> and <style> text and in every other
+// attribute (data-*, style, onclick), plain or JSON-escaped (\/ and /): a URL-shaped mention of a
+// forbidden host or an own domain fails the page the same way.
+//
 // A reviewed difference can be listed in expected-differences.json with kind "static".
 //
 // Site wrapper (tests/static.spec.ts):
@@ -27,7 +31,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { extractReferences, externalKey, internalKey } from '../lib/references.mjs';
+import { extractReferences, externalKey, findHostMentions, internalKey } from '../lib/references.mjs';
 import { hostKey, ownHostSet, responseHtml } from '../lib/extract.mjs';
 import { applyExpectedDifferences } from '../lib/compare.mjs';
 
@@ -62,8 +66,18 @@ export function registerStaticSuite({ test, expect, config, root }) {
         // When the target IS the source (a self-check), its own host is not a leak.
         const leakHosts = new Set([...forbidden].filter((h) => h !== target.host));
 
+        const html = await responseHtml(res);
+        // The same leaks named inside inline scripts, styles and non-reference attributes, where the
+        // attribute check below does not look (Drupal.settings JSON, data-* attributes).
+        const mentionHosts = [...leakHosts, ...(target.host !== sourceHost ? [...ownHosts] : [])]
+          .filter((h) => hostKey(h) !== hostKey(target.hostname));
+        for (const m of new Map(findHostMentions(html, mentionHosts).map((x) => [`${x.where} ${x.url}`, x])).values()) {
+          const own = ownHosts.has(hostKey(m.url.replace(/^(?:https?:)?\/\//i, '').split(/[/:?#]/)[0]));
+          diffs.push({ kind: 'static', item: `${own ? "names the site's own public domain" : 'names the source site'} inside ${m.where}: ${m.url}` });
+        }
+
         const seen = new Set();
-        for (const r of extractReferences(await responseHtml(res), pageUrl, target.origin, ownHosts)) {
+        for (const r of extractReferences(html, pageUrl, target.origin, ownHosts)) {
           const id = `${r.url.href}`;
           if (seen.has(id)) continue;
           seen.add(id);
