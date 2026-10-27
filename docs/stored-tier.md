@@ -76,6 +76,20 @@ Copy `scripts/stored-exporters/drupal6.mjs`. Only the queries change. Produce:
 and pass it through `buildStored()`. Watch the platform's conventions: in Drupal 6
 `comments.status = 0` means *published*, the reverse of `node.status`.
 
+**Drupal 10/11 targets: `scripts/stored-exporters/drupal11.mjs`**, pointed at the target project:
+
+```bash
+node kit/scripts/stored-exporters/drupal11.mjs --project-dir ~/workspace/<target> --out tmp/stored-target.json
+ddev exec -d /var/www/html/test/playwright \
+  'STORED_TARGET_EXPORT=tmp/stored-target.json MIGRATION_TARGET=drupal11 npx playwright test --grep "stored:"'
+```
+
+It assumes the migration kept the original nid and cid (a rerunnable import script does; a Migrate API
+migration that renumbers must map them back from its `migrate_map_*` tables). Bodies are read from the
+`body` field only. Vocabularies are config entities: the label the baseline compares is read from the
+`config` table (its `name` key), not the machine name. Status 1 means published for nodes and comments.
+A site with no `body` field yet (a fresh 11.4 standard install has no content types) exports empty bodies.
+
 ## Measured on hobobiker.com
 
 | What | Result |
@@ -83,6 +97,8 @@ and pass it through `buildStored()`. Watch the platform's conventions: in Drupal
 | Export | 2 s: 1,296 nodes, 447 comments, 82 terms; 1.5 MB |
 | Self-check, enforced | 1,445 pass in 5 s |
 | Negative control: one comment dropped, one title changed | drupal11: 2 failures naming both ("comment 1163 on node 4123 by Javier Martin is missing"); static: reported, passes |
+| Drupal 11 rebuild (`drupal11.mjs`, 2026-10-27) | 1,296 nodes, 446 comments, 82 terms; 1,443 pass, 2 fail: the 2 deliberate changes (an orphan comment dropped, an empty title Drupal 11 cannot store), then declared: 1,445 pass |
+| Negative control on the Drupal 11 site: comment 1163 deleted, one title changed | 2 failures naming both; Drupal 11 also deleted the comment's 2 replies, and all 3 were named |
 
 ## Lessons
 
